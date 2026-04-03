@@ -2,24 +2,49 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { userLogin } from '@/lib/api';
+import { userLogin, userRegister } from '@/lib/api';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [tab, setTab] = useState('login');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e) => {
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  const [registerForm, setRegisterForm] = useState({ name: '', email: '', password: '', confirm: '', licenseCode: '' });
+
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      await userLogin(email, password);
+      await userLogin(loginForm.email, loginForm.password);
       router.push('/dashboard');
     } catch (e) {
-      setError('Email o contraseña incorrectos. Usa las credenciales que te ha proporcionado tu centro.');
+      setError(e.message === 'Tu licencia ha sido revocada. Contacta con tu centro.'
+        ? e.message
+        : 'Email o contraseña incorrectos.');
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    if (registerForm.password !== registerForm.confirm) {
+      setError('Las contraseñas no coinciden');
+      return;
+    }
+    if (registerForm.password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      await userRegister(registerForm.name, registerForm.email, registerForm.password, registerForm.licenseCode);
+      router.push('/dashboard');
+    } catch (e) {
+      setError(e.message);
       setLoading(false);
     }
   };
@@ -34,58 +59,134 @@ export default function Login() {
             </div>
             <span className="text-white font-bold text-2xl">MindPath</span>
           </Link>
-          <p className="text-slate-400 text-sm mt-2">Inicia sesión para continuar</p>
         </div>
 
-        <div className="bg-white rounded-2xl p-8 shadow-2xl">
-          <h1 className="text-xl font-bold text-slate-900 mb-6">Bienvenido</h1>
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+          {/* Tabs */}
+          <div className="flex border-b border-slate-100">
+            {[
+              { key: 'login', label: 'Ya tengo cuenta' },
+              { key: 'register', label: 'Primera vez' },
+            ].map((t) => (
+              <button
+                key={t.key}
+                onClick={() => { setTab(t.key); setError(''); }}
+                className={`flex-1 py-3.5 text-sm font-medium transition cursor-pointer ${
+                  tab === t.key
+                    ? 'text-indigo-600 border-b-2 border-indigo-600'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Correo electrónico
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="tu@email.es"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Contraseña</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
-              />
-            </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-lg">
-                {error}
-              </div>
+          <div className="p-8">
+            {/* Login */}
+            {tab === 'login' && (
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+                  <input
+                    type="email"
+                    value={loginForm.email}
+                    onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                    required
+                    placeholder="tu@email.es"
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Contraseña</label>
+                  <input
+                    type="password"
+                    value={loginForm.password}
+                    onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                    required
+                    placeholder="••••••••"
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+                  />
+                </div>
+                {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-2.5 rounded-lg">{error}</p>}
+                <button type="submit" disabled={loading}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 rounded-xl transition cursor-pointer">
+                  {loading ? 'Entrando...' : 'Iniciar sesión'}
+                </button>
+              </form>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 rounded-xl transition cursor-pointer"
-            >
-              {loading ? 'Entrando...' : 'Iniciar sesión'}
-            </button>
-          </form>
+            {/* Register */}
+            {tab === 'register' && (
+              <form onSubmit={handleRegister} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Nombre completo</label>
+                  <input
+                    type="text"
+                    value={registerForm.name}
+                    onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
+                    required
+                    placeholder="Nombre Apellido"
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+                  <input
+                    type="email"
+                    value={registerForm.email}
+                    onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
+                    required
+                    placeholder="tu@email.es"
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Contraseña</label>
+                  <input
+                    type="password"
+                    value={registerForm.password}
+                    onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
+                    required
+                    placeholder="Mínimo 8 caracteres"
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Confirmar contraseña</label>
+                  <input
+                    type="password"
+                    value={registerForm.confirm}
+                    onChange={(e) => setRegisterForm({ ...registerForm, confirm: e.target.value })}
+                    required
+                    placeholder="Repite la contraseña"
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Código de licencia</label>
+                  <input
+                    type="text"
+                    value={registerForm.licenseCode}
+                    onChange={(e) => setRegisterForm({ ...registerForm, licenseCode: e.target.value.toUpperCase() })}
+                    required
+                    placeholder="MIND-XXXX-XXXX"
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 font-mono"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">Proporcionado por tu centro educativo</p>
+                </div>
+                {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-2.5 rounded-lg">{error}</p>}
+                <button type="submit" disabled={loading}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 rounded-xl transition cursor-pointer">
+                  {loading ? 'Creando cuenta...' : 'Crear cuenta y entrar'}
+                </button>
+              </form>
+            )}
+          </div>
         </div>
 
         <p className="text-center text-slate-500 text-sm mt-6">
-          <Link href="/" className="hover:text-slate-300 transition">
-            ← Volver al inicio
-          </Link>
+          <Link href="/" className="hover:text-slate-300 transition">← Volver al inicio</Link>
         </p>
       </div>
     </div>

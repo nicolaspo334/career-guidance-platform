@@ -28,6 +28,9 @@ export default function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
+          <Link href="/licencias" className="text-slate-600 hover:text-slate-900 px-4 py-2 text-sm transition">
+            Portal centros
+          </Link>
           <Link href="/login" className="text-slate-600 hover:text-slate-900 px-4 py-2 text-sm transition">
             Iniciar sesión
           </Link>
