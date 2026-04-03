@@ -93,6 +93,17 @@ export async function userLogin(email, password) {
   const data = await request('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
   sessionStorage.setItem('mindpath_user_token', data.token);
   sessionStorage.setItem('mindpath_user', JSON.stringify({ name: data.name, email: data.email }));
+  sessionStorage.setItem('mindpath_user_email', email);
+  return data;
+}
+
+export async function userChangePassword(currentPassword, newPassword) {
+  const email = sessionStorage.getItem('mindpath_user_email') || '';
+  const data = await request('/api/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ email, currentPassword, newPassword }),
+  });
+  sessionStorage.setItem('mindpath_user_token', data.token);
   return data;
 }
 export async function userRegister(name, email, password, licenseCode) {

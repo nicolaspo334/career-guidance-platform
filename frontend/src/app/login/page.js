@@ -18,8 +18,12 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      await userLogin(loginForm.email, loginForm.password);
-      router.push('/dashboard');
+      const data = await userLogin(loginForm.email, loginForm.password);
+      if (data.mustChangePassword) {
+        router.push('/cambiar-contrasena');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (e) {
       setError(e.message === 'Tu licencia ha sido revocada. Contacta con tu centro.'
         ? e.message

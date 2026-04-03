@@ -466,8 +466,38 @@ export default {
         if (!valid) { await recordAttempt(env, ip, email); return err('Credenciales incorrectas', 401); }
 
         await clearAttempts(env, ip, email);
+        const mustChange = user.must_change_password === 1;
         const token = await signJWT(
-          { role: 'user', userId: user.id, name: user.name, email: user.email, exp: Math.floor(Date.now() / 1000) + 24 * 3600 },
+          { role: 'user', userId: user.id, name: user.name, email: user.email,
+            mustChangePassword: mustChange, exp: Math.floor(Date.now() / 1000) + 24 * 3600 },
+          env.JWT_SECRET
+        );
+        return json({ ok: true, token, name: user.name, email: user.email, mustChangePassword: mustChange });
+      }
+
+      if (path === '/api/auth/change-password' && method === 'POST') {
+        const ip = getIP(req);
+        const { email, currentPassword, newPassword } = await req.json();
+        if (!email || !currentPassword || !newPassword) return err('Faltan campos');
+        if (newPassword.length < 8) return err('Mínimo 8 caracteres');
+        if (currentPassword === newPassword) return err('La nueva contraseña debe ser distinta');
+
+        if (await checkRateLimit(env, ip, email)) return err(`Demasiados intentos. Espera ${LOCKOUT_MINS} min.`, 429);
+
+        const user = await env.DB.prepare('SELECT * FROM users WHERE email = ? AND active = 1').bind(email).first();
+        if (!user) { await recordAttempt(env, ip, email); return err('Credenciales incorrectas', 401); }
+
+        const valid = await verifyPassword(currentPassword, user.password_hash, user.salt);
+        if (!valid) { await recordAttempt(env, ip, email); return err('La contraseña actual es incorrecta', 401); }
+
+        const { hash, salt } = await hashPassword(newPassword);
+        await env.DB.prepare('UPDATE users SET password_hash = ?, salt = ?, must_change_password = 0 WHERE id = ?')
+          .bind(hash, salt, user.id).run();
+
+        await clearAttempts(env, ip, email);
+        const token = await signJWT(
+          { role: 'user', userId: user.id, name: user.name, email: user.email,
+            mustChangePassword: false, exp: Math.floor(Date.now() / 1000) + 24 * 3600 },
           env.JWT_SECRET
         );
         return json({ ok: true, token, name: user.name, email: user.email });
@@ -507,7 +537,7 @@ async function createUserForLicense(env, { name, email, licenseId }) {
   const userId = generateId('usr_');
 
   await env.DB.prepare(
-    'INSERT INTO users (id, license_id, name, email, password_hash, salt, active) VALUES (?, ?, ?, ?, ?, ?, 1)'
+    'INSERT INTO users (id, license_id, name, email, password_hash, salt, active, must_change_password) VALUES (?, ?, ?, ?, ?, ?, 1, 1)'
   ).bind(userId, licenseId, name, email, hash, salt).run();
 
   return { userId, email, password };
