@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { centerLogin } from '@/lib/api';
 
 export default function LicenciasLogin() {
-  const [licenseCode, setLicenseCode] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [email, setEmail]       = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e) => {
@@ -15,8 +16,12 @@ export default function LicenciasLogin() {
     setLoading(true);
     setError('');
     try {
-      await centerLogin(licenseCode);
-      router.push('/licencias/dashboard');
+      const data = await centerLogin(email, password);
+      if (data.mustChangePassword) {
+        router.push('/licencias/cambiar-contrasena');
+      } else {
+        router.push('/licencias/dashboard');
+      }
     } catch (e) {
       setError(e.message);
       setLoading(false);
@@ -39,21 +44,34 @@ export default function LicenciasLogin() {
         <div className="bg-white rounded-2xl p-8 shadow-2xl">
           <h1 className="text-xl font-bold text-slate-900 mb-2">Acceso del centro</h1>
           <p className="text-slate-500 text-sm mb-6">
-            Introduce el código de licencia de tu centro para gestionar los alumnos.
+            Usa el email con el que solicitaste la licencia y la contraseña recibida por correo.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Código de licencia
+                Email del centro
               </label>
               <input
-                type="text"
-                value={licenseCode}
-                onChange={(e) => setLicenseCode(e.target.value.toUpperCase())}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="MIND-XXXX-XXXX"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 font-mono text-center text-lg tracking-widest"
+                placeholder="orientacion@instituto.es"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                Contraseña
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
               />
             </div>
 
@@ -63,14 +81,18 @@ export default function LicenciasLogin() {
               </p>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 rounded-xl transition cursor-pointer"
-            >
+            <button type="submit" disabled={loading}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 rounded-xl transition cursor-pointer">
               {loading ? 'Accediendo...' : 'Acceder al panel'}
             </button>
           </form>
+
+          <p className="text-xs text-slate-400 text-center mt-4">
+            ¿No tienes acceso aún?{' '}
+            <Link href="/solicitar-licencia" className="text-indigo-600 hover:underline">
+              Solicitar licencia
+            </Link>
+          </p>
         </div>
 
         <p className="text-center text-slate-500 text-sm mt-6">

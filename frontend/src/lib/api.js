@@ -50,18 +50,31 @@ export const requestLicense = (formData) =>
   request('/api/licenses/request', { method: 'POST', body: JSON.stringify(formData) });
 
 // ── Center auth ────────────────────────────────────────────────────────────────
-export async function centerLogin(licenseCode) {
-  const data = await request('/api/center/login', { method: 'POST', body: JSON.stringify({ licenseCode }) });
+export async function centerLogin(email, password) {
+  const data = await request('/api/center/login', { method: 'POST', body: JSON.stringify({ email, password }) });
   sessionStorage.setItem('mindpath_center_token', data.token);
   sessionStorage.setItem('mindpath_center_name', data.centerName);
+  sessionStorage.setItem('mindpath_center_email', email);
+  return data;
+}
+export async function centerChangePassword(currentPassword, newPassword) {
+  const email = sessionStorage.getItem('mindpath_center_email') || '';
+  const data = await request('/api/center/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ email, currentPassword, newPassword }),
+  });
+  // Refresh token after password change
+  sessionStorage.setItem('mindpath_center_token', data.token);
   return data;
 }
 export function centerLogout() {
   sessionStorage.removeItem('mindpath_center_token');
   sessionStorage.removeItem('mindpath_center_name');
+  sessionStorage.removeItem('mindpath_center_email');
 }
-export const isCenterLoggedIn  = () => !!getCenterToken();
+export const isCenterLoggedIn    = () => !!getCenterToken();
 export const getStoredCenterName = () => sessionStorage.getItem('mindpath_center_name') || '';
+export const getStoredCenterEmail = () => sessionStorage.getItem('mindpath_center_email') || '';
 
 // ── Center: management ─────────────────────────────────────────────────────────
 export const getCenterInfo       = () => request('/api/center/info', {}, getCenterToken());
