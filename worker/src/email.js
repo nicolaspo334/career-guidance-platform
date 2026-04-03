@@ -89,7 +89,7 @@ export async function sendLicenseApprovedEmail(resendApiKey, { to, centerName, l
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'MindPath <noreply@mindpath.es>',
+      from: 'MindPath <onboarding@resend.dev>',
       to: [to],
       subject: `✅ Tu licencia MindPath ha sido aprobada — ${licenseCode}`,
       html,

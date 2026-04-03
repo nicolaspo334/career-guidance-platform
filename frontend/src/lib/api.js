@@ -37,6 +37,8 @@ export const rejectRequest  = (centerId) =>
 export const getLicenses      = () => request('/api/admin/licenses', {}, getAdminToken());
 export const revokeLicense    = (licenseId, revoked) =>
   request('/api/admin/licenses/revoke', { method: 'PATCH', body: JSON.stringify({ licenseId, revoked }) }, getAdminToken());
+export const deleteLicense    = (licenseId) =>
+  request('/api/admin/licenses/delete', { method: 'DELETE', body: JSON.stringify({ licenseId }) }, getAdminToken());
 export const updateMaxUsers   = (licenseId, maxUsers) =>
   request('/api/admin/licenses/max-users', { method: 'PATCH', body: JSON.stringify({ licenseId, maxUsers }) }, getAdminToken());
 

@@ -197,6 +197,27 @@ export default {
         return json({ ok: true });
       }
 
+      if (path === '/api/admin/licenses/delete' && method === 'DELETE') {
+        if (!await verifyRole(req, env, 'admin')) return err('No autorizado', 401);
+        const { licenseId } = await req.json();
+        if (!licenseId) return err('Falta licenseId');
+
+        // Get center_id before deleting
+        const license = await env.DB.prepare('SELECT center_id FROM licenses WHERE id = ?')
+          .bind(licenseId).first();
+        if (!license) return err('Licencia no encontrada', 404);
+
+        // Delete in order: users → sessions → license → center
+        await env.DB.batch([
+          env.DB.prepare('DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE license_id = ?)').bind(licenseId),
+          env.DB.prepare('DELETE FROM users WHERE license_id = ?').bind(licenseId),
+          env.DB.prepare('DELETE FROM licenses WHERE id = ?').bind(licenseId),
+          env.DB.prepare('DELETE FROM centers WHERE id = ?').bind(license.center_id),
+        ]);
+
+        return json({ ok: true });
+      }
+
       if (path === '/api/admin/licenses/max-users' && method === 'PATCH') {
         if (!await verifyRole(req, env, 'admin')) return err('No autorizado', 401);
         const { licenseId, maxUsers } = await req.json();

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   getRequests, approveRequest, rejectRequest,
   getUsers, createAdminUser,
-  getLicenses, revokeLicense, updateMaxUsers,
+  getLicenses, revokeLicense, updateMaxUsers, deleteLicense,
   adminLogout, isAdminLoggedIn,
 } from '@/lib/api';
 
@@ -66,9 +66,18 @@ export default function AdminDashboard() {
   };
 
   const handleRevoke = async (licenseId, currentRevoked) => {
-    const action = currentRevoked ? 'reactivar' : 'revocar';
+    const action = currentRevoked ? 'reactivar' : 'revocar temporalmente';
     if (!confirm(`¿${action} esta licencia?`)) return;
     try { await revokeLicense(licenseId, !currentRevoked); await load(); }
+    catch (e) { setError(e.message); }
+  };
+
+  const handleDelete = async (licenseId, centerName) => {
+    const confirmed = confirm(
+      `⚠️ BORRADO PERMANENTE\n\n¿Eliminar la licencia de "${centerName}"?\n\nSe eliminarán también todos sus usuarios. Esta acción no se puede deshacer.`
+    );
+    if (!confirmed) return;
+    try { await deleteLicense(licenseId); await load(); }
     catch (e) { setError(e.message); }
   };
 
@@ -312,9 +321,14 @@ export default function AdminDashboard() {
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer ${
                         lic.revoked === 1
                           ? 'bg-green-50 hover:bg-green-100 text-green-700'
-                          : 'bg-red-50 hover:bg-red-100 text-red-600'
+                          : 'bg-amber-50 hover:bg-amber-100 text-amber-700'
                       }`}>
                       {lic.revoked === 1 ? 'Reactivar' : 'Revocar'}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(lic.id, lic.center_name)}
+                      className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
+                      Eliminar
                     </button>
                   </div>
                 </div>
