@@ -2,31 +2,25 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-
-const ADMIN_USER = 'admin';
-const ADMIN_PASS = 'mindpath2024';
+import { adminLogin } from '@/lib/api';
 
 export default function AdminLogin() {
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
-    setTimeout(() => {
-      if (username === ADMIN_USER && password === ADMIN_PASS) {
-        sessionStorage.setItem('mindpath_admin', 'true');
-        router.push('/admin/dashboard');
-      } else {
-        setError('Usuario o contraseña incorrectos.');
-        setLoading(false);
-      }
-    }, 500);
+    try {
+      await adminLogin(password);
+      router.push('/admin/dashboard');
+    } catch (e) {
+      setError(e.message);
+      setLoading(false);
+    }
   };
 
   return (
@@ -47,18 +41,9 @@ export default function AdminLogin() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Usuario</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                placeholder="admin"
-                className="w-full px-4 py-2.5 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Contraseña</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                Contraseña
+              </label>
               <input
                 type="password"
                 value={password}
@@ -83,6 +68,13 @@ export default function AdminLogin() {
               {loading ? 'Accediendo...' : 'Entrar'}
             </button>
           </form>
+
+          <p className="text-center text-slate-600 text-xs mt-4">
+            ¿Primera vez?{' '}
+            <Link href="/admin/setup" className="text-indigo-400 hover:text-indigo-300">
+              Configurar admin
+            </Link>
+          </p>
         </div>
 
         <p className="text-center text-slate-600 text-sm mt-6">

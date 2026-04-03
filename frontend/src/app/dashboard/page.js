@@ -2,22 +2,22 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getStoredUser, userLogout, isUserLoggedIn } from '@/lib/api';
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('mindpath_user');
-    if (!stored) {
+    if (!isUserLoggedIn()) {
       router.replace('/login');
       return;
     }
-    setUser(JSON.parse(stored));
+    setUser(getStoredUser());
   }, []);
 
-  const logout = () => {
-    sessionStorage.removeItem('mindpath_user');
+  const logout = async () => {
+    await userLogout();
     router.push('/login');
   };
 
@@ -55,7 +55,6 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Main card */}
         <div className="bg-gradient-to-br from-indigo-600 to-cyan-600 rounded-2xl p-8 text-white mb-8">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl shrink-0">
@@ -76,24 +75,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Info cards */}
         <div className="grid sm:grid-cols-3 gap-4">
           {[
-            {
-              icon: '📚',
-              title: 'Carreras universitarias',
-              desc: 'Más de 500 carreras analizadas y puntuadas según tu perfil.',
-            },
-            {
-              icon: '🏛️',
-              title: 'Universidades',
-              desc: 'Recomendaciones de universidades adaptadas a tu nota y preferencias.',
-            },
-            {
-              icon: '💼',
-              title: 'Mercado laboral',
-              desc: 'Proyecciones de empleo para 2030 incluidas en cada recomendación.',
-            },
+            { icon: '📚', title: 'Carreras universitarias', desc: 'Más de 500 carreras analizadas y puntuadas según tu perfil.' },
+            { icon: '🏛️', title: 'Universidades', desc: 'Recomendaciones de universidades adaptadas a tu nota y preferencias.' },
+            { icon: '💼', title: 'Mercado laboral', desc: 'Proyecciones de empleo para 2030 incluidas en cada recomendación.' },
           ].map((card, i) => (
             <div key={i} className="bg-white rounded-xl p-5 border border-slate-200">
               <div className="text-3xl mb-3">{card.icon}</div>

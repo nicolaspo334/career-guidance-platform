@@ -1,0 +1,9 @@
+name = "mindpath-worker"
+main = "src/index.js"
+compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "mindpath-db"
+database_id = "afd5f295-e27a-4a8b-bff7-13d2e47143dc"

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { userLogin } from '@/lib/api';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -10,26 +11,17 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
-    // Demo credentials — will be replaced by real auth
-    setTimeout(() => {
-      if (email === 'demo@mindpath.es' && password === 'demo123') {
-        sessionStorage.setItem(
-          'mindpath_user',
-          JSON.stringify({ name: 'Alumno Demo', email })
-        );
-        router.push('/dashboard');
-      } else {
-        setError(
-          'Email o contraseña incorrectos. Usa las credenciales que te ha proporcionado tu centro.'
-        );
-        setLoading(false);
-      }
-    }, 500);
+    try {
+      await userLogin(email, password);
+      router.push('/dashboard');
+    } catch (e) {
+      setError('Email o contraseña incorrectos. Usa las credenciales que te ha proporcionado tu centro.');
+      setLoading(false);
+    }
   };
 
   return (
@@ -88,10 +80,6 @@ export default function Login() {
               {loading ? 'Entrando...' : 'Iniciar sesión'}
             </button>
           </form>
-
-          <div className="mt-6 p-3 bg-slate-50 rounded-lg text-xs text-slate-500 text-center border border-slate-100">
-            <strong>Demo:</strong> demo@mindpath.es / demo123
-          </div>
         </div>
 
         <p className="text-center text-slate-500 text-sm mt-6">

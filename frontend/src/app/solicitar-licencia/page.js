@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { requestLicense } from '@/lib/api';
 
 export default function SolicitarLicencia() {
   const [form, setForm] = useState({
@@ -16,31 +17,23 @@ export default function SolicitarLicencia() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    const requests = JSON.parse(localStorage.getItem('mindpath_requests') || '[]');
-    const newRequest = {
-      id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      ...form,
-      date: new Date().toISOString(),
-      status: 'pending',
-      licenseCode: null,
-      maxUsers: null,
-    };
-    requests.push(newRequest);
-    localStorage.setItem('mindpath_requests', JSON.stringify(requests));
-
-    setTimeout(() => {
-      setLoading(false);
+    setError('');
+    try {
+      await requestLicense(form);
       setSubmitted(true);
-    }, 800);
+    } catch (e) {
+      setError(e.message);
+      setLoading(false);
+    }
   };
 
   if (submitted) {
@@ -96,7 +89,7 @@ export default function SolicitarLicencia() {
                 onChange={handleChange}
                 required
                 placeholder="IES / Colegio / Centro..."
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-slate-900"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
               />
             </div>
 
@@ -109,7 +102,7 @@ export default function SolicitarLicencia() {
                 value={form.centerType}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-slate-900 bg-white"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 bg-white"
               >
                 <option value="">Seleccionar...</option>
                 <option value="ies">Instituto de Educación Secundaria (IES)</option>
@@ -134,7 +127,7 @@ export default function SolicitarLicencia() {
                 required
                 min="1"
                 placeholder="200"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-slate-900"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
               />
             </div>
 
@@ -149,7 +142,7 @@ export default function SolicitarLicencia() {
                 onChange={handleChange}
                 required
                 placeholder="Nombre y apellidos"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-slate-900"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
               />
             </div>
 
@@ -164,7 +157,7 @@ export default function SolicitarLicencia() {
                 onChange={handleChange}
                 required
                 placeholder="orientacion@instituto.es"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-slate-900"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
               />
             </div>
 
@@ -176,7 +169,7 @@ export default function SolicitarLicencia() {
                 value={form.phone}
                 onChange={handleChange}
                 placeholder="+34 600 000 000"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-slate-900"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
               />
             </div>
 
@@ -189,11 +182,17 @@ export default function SolicitarLicencia() {
                 value={form.message}
                 onChange={handleChange}
                 rows={4}
-                placeholder="Cuéntanos más sobre vuestras necesidades o cualquier duda que tengáis..."
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-slate-900 resize-none"
+                placeholder="Cuéntanos más sobre vuestras necesidades..."
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 resize-none"
               />
             </div>
           </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-lg">
+              {error}
+            </div>
+          )}
 
           <button
             type="submit"
@@ -205,10 +204,8 @@ export default function SolicitarLicencia() {
 
           <p className="text-xs text-slate-500 text-center">
             Al enviar aceptas nuestra{' '}
-            <Link href="#" className="text-indigo-600 hover:underline">
-              política de privacidad
-            </Link>
-            . Tus datos serán tratados conforme al RGPD.
+            <Link href="#" className="text-indigo-600 hover:underline">política de privacidad</Link>.
+            Tus datos serán tratados conforme al RGPD.
           </p>
         </form>
       </div>
