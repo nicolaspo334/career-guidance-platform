@@ -708,7 +708,10 @@ Devuelve ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin bloques ma
             compat = Math.pow(riasecC, 0.60) * Math.pow(mbtiC, 0.40);
           }
 
-          const compatScore = Math.round(compat * 100);
+          // Power stretch: compat^1.5 × 1.60, capped at 99.
+          // Monotone (rank-preserving) transform that widens spread for display.
+          // A 71% raw match → ~96%, a 56% match → ~67% (29pt gap vs 15pt before).
+          const compatScore = Math.min(99, Math.round(Math.pow(compat, 1.5) * 160));
           return { id: c.id, name: c.name, area: c.area, description: c.description,
                    score: compatScore, compatScore, futureScore: c.future };
         }).sort((a, b) => b.score - a.score).slice(0, 10);
@@ -789,7 +792,7 @@ Devuelve ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin bloques ma
         return json({
           categories: sorted.map(c => {
             const { _raw, ...rest } = c;
-            return { ...rest, score: Math.round(_raw * 100) };
+            return { ...rest, score: Math.min(99, Math.round(Math.pow(_raw, 1.5) * 160)) };
           }),
         });
       }
@@ -816,11 +819,9 @@ Devuelve ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin bloques ma
         }));
 
         raw.sort((a, b) => b._compat - a._compat);
-        // Use absolute score (compat is already 0-1) — no relative normalization
-        // so a degree that truly doesn't fit doesn't get an inflated score
         const scored = raw.map(d => {
           const { _compat, ...rest } = d;
-          const compatScore = Math.round(_compat * 100);
+          const compatScore = Math.min(99, Math.round(Math.pow(_compat, 1.5) * 160));
           return { ...rest, compatScore, score: compatScore };
         });
 
