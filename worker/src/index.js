@@ -614,14 +614,26 @@ Devuelve ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin bloques ma
     "JP": <entero 0-100, donde 0=totalmente flexible/espontáneo, 100=totalmente organizado/planificador>
   },
   "RIASEC": {
-    "R": <0-100 realista: preferencia por trabajo físico, práctico o manual>,
-    "I": <0-100 investigativo: preferencia por análisis, ciencia o teoría>,
-    "A": <0-100 artístico: preferencia por creatividad, expresión o estética>,
-    "S": <0-100 social: preferencia por ayudar, enseñar o cuidar personas>,
-    "E": <0-100 emprendedor: preferencia por liderar, persuadir o gestionar>,
-    "C": <0-100 convencional: preferencia por datos, orden y procedimientos>
+    "R": <0-100 realista>,
+    "I": <0-100 investigativo>,
+    "A": <0-100 artístico>,
+    "S": <0-100 social>,
+    "E": <0-100 emprendedor>,
+    "C": <0-100 convencional>
   },
-  "analysis": "<2-3 frases en español describiendo el perfil vocacional del alumno>"
+  "analysis": "<2-3 frases en español describiendo el perfil vocacional del alumno>",
+  "reasoning": {
+    "EI": "<cita las palabras o frases EXACTAS del alumno que determinaron este valor y explica por qué apuntan a introversión o extraversión>",
+    "SN": "<ídem para intuitivo vs sensorial>",
+    "TF": "<ídem para emocional vs racional>",
+    "JP": "<ídem para espontáneo vs planificador>",
+    "R": "<frases exactas que sugieren (o descartan) perfil Realista>",
+    "I": "<frases exactas que sugieren (o descartan) perfil Investigador>",
+    "A": "<frases exactas que sugieren (o descartan) perfil Artístico>",
+    "S": "<frases exactas que sugieren (o descartan) perfil Social>",
+    "E": "<frases exactas que sugieren (o descartan) perfil Emprendedor>",
+    "C": "<frases exactas que sugieren (o descartan) perfil Convencional>"
+  }
 }`;
 
         const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -634,7 +646,7 @@ Devuelve ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin bloques ma
             model: 'llama-3.3-70b-versatile',
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.2,
-            max_tokens: 500,
+            max_tokens: 1200,
           }),
         });
 
@@ -685,35 +697,40 @@ Devuelve ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin bloques ma
           .sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k).join('');
 
         const student = { EI, SN, TF, JP, R: RR, I: RI, A: RA, S: RS, E: RE, C: RC };
+        const d = (a, b) => Math.pow(1 - Math.abs(a - b) / 100, 2);
+        const r2 = (v) => Math.round(v * 100) / 100; // round to 2 decimals
 
         const scoredCareers = CAREERS.map(c => {
-          const d  = (a, b) => Math.pow(1 - Math.abs(a - b) / 100, 2);
-          const mbtiC = Math.pow(
-            d(student.EI, c.mbti.EI) * d(student.SN, c.mbti.SN) *
-            d(student.TF, c.mbti.TF) * d(student.JP, c.mbti.JP),
-            1 / 4
-          );
-          const riasecC = Math.pow(
-            d(student.R, c.riasec.R) * d(student.I, c.riasec.I) * d(student.A, c.riasec.A) *
-            d(student.S, c.riasec.S) * d(student.E, c.riasec.E) * d(student.C, c.riasec.C),
-            1 / 6
-          );
+          const dEI = d(student.EI, c.mbti.EI), dSN = d(student.SN, c.mbti.SN);
+          const dTF = d(student.TF, c.mbti.TF), dJP = d(student.JP, c.mbti.JP);
+          const mbtiC = Math.pow(dEI * dSN * dTF * dJP, 1 / 4);
 
-          let compat;
+          const dR = d(student.R, c.riasec.R), dI = d(student.I, c.riasec.I);
+          const dA = d(student.A, c.riasec.A), dS = d(student.S, c.riasec.S);
+          const dE = d(student.E, c.riasec.E), dC = d(student.C, c.riasec.C);
+          const riasecC = Math.pow(dR * dI * dA * dS * dE * dC, 1 / 6);
+
+          let compat, valC = null;
           if (hasValues) {
-            const valC = valuesCompat(c, valuesProfile);
-            // RIASEC 50% + MBTI 30% + Values 20%
+            valC = valuesCompat(c, valuesProfile);
             compat = Math.pow(riasecC, 0.50) * Math.pow(mbtiC, 0.30) * Math.pow(valC, 0.20);
           } else {
             compat = Math.pow(riasecC, 0.60) * Math.pow(mbtiC, 0.40);
           }
 
-          // Power stretch: compat^1.5 × 1.60, capped at 99.
-          // Monotone (rank-preserving) transform that widens spread for display.
-          // A 71% raw match → ~96%, a 56% match → ~67% (29pt gap vs 15pt before).
           const compatScore = Math.min(99, Math.round(Math.pow(compat, 1.5) * 160));
+
+          // Debug breakdown (intermediate d() values and sub-scores)
+          const _debug = {
+            mbtiC: r2(mbtiC), riasecC: r2(riasecC), valC: valC !== null ? r2(valC) : null,
+            rawCompat: r2(compat),
+            mbtiD: { EI: r2(dEI), SN: r2(dSN), TF: r2(dTF), JP: r2(dJP) },
+            riasecD: { R: r2(dR), I: r2(dI), A: r2(dA), S: r2(dS), E: r2(dE), C: r2(dC) },
+            careerIdeal: { mbti: c.mbti, riasec: c.riasec },
+          };
+
           return { id: c.id, name: c.name, area: c.area, description: c.description,
-                   score: compatScore, compatScore, futureScore: c.future };
+                   score: compatScore, compatScore, futureScore: c.future, _debug };
         }).sort((a, b) => b.score - a.score).slice(0, 10);
 
         const resultId = generateId('res_');
@@ -742,6 +759,40 @@ Devuelve ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin bloques ma
           riasec: { R: RR, I: RI, A: RA, S: RS, E: RE, C: RC, code: riasecCode },
           analysis,
           careers: scoredCareers,
+          // Debug block — technical detail for analysis (remove in production)
+          _debug: {
+            model: 'llama-3.3-70b-versatile',
+            temperature: 0.2,
+            max_tokens: 1200,
+            promptSent: prompt,
+            rawAiResponse: rawContent,
+            aiReasoning: dims.reasoning || null,
+            aiRawScores: {
+              mbti: { EI: dims.MBTI?.EI, SN: dims.MBTI?.SN, TF: dims.MBTI?.TF, JP: dims.MBTI?.JP },
+              riasec: { R: dims.RIASEC?.R, I: dims.RIASEC?.I, A: dims.RIASEC?.A,
+                        S: dims.RIASEC?.S, E: dims.RIASEC?.E, C: dims.RIASEC?.C },
+            },
+            riasecPipeline: hasPrecomputedRiasec ? {
+              structured: riasecScores,
+              ai: { R: clamp(dims.RIASEC?.R), I: clamp(dims.RIASEC?.I), A: clamp(dims.RIASEC?.A),
+                    S: clamp(dims.RIASEC?.S), E: clamp(dims.RIASEC?.E), C: clamp(dims.RIASEC?.C) },
+              blendWeights: { structured: 0.65, ai: 0.35 },
+              blended: { R: RR, I: RI, A: RA, S: RS, E: RE, C: RC },
+            } : null,
+            skillsScores: skillsScores || null,
+            valuesProfile: valuesProfile || null,
+            careerScoring: {
+              formula: hasValues
+                ? 'compat = riasecC^0.50 × mbtiC^0.30 × valC^0.20'
+                : 'compat = riasecC^0.60 × mbtiC^0.40',
+              displayFormula: 'displayScore = min(99, round(compat^1.5 × 160))',
+              distanceFormula: 'd(a,b) = (1 - |a-b|/100)^2',
+              top10: scoredCareers.map(c => ({
+                name: c.name, area: c.area, displayScore: c.score,
+                ...c._debug,
+              })),
+            },
+          },
         });
       }
 
