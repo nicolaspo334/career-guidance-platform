@@ -7,10 +7,10 @@ export default function Footer() {
         <div className="grid md:grid-cols-4 gap-8 mb-12">
           <div className="md:col-span-2">
             <div className="flex items-center gap-2.5 font-bold text-xl text-white mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-cyan-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">M</span>
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm font-stylish">E</span>
               </div>
-              MindPath
+              <span className="font-stylish">Elentio</span>
             </div>
             <p className="text-slate-500 text-sm leading-relaxed max-w-xs">
               Plataforma de orientación académica y profesional basada en inteligencia artificial para centros educativos.
@@ -63,7 +63,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="border-t border-slate-800 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-sm">© 2025 MindPath. Todos los derechos reservados.</p>
+          <p className="text-sm">© 2026 Elentio. Todos los derechos reservados.</p>
           <p className="text-sm">Hecho con cuidado para la orientación educativa</p>
         </div>
       </div>

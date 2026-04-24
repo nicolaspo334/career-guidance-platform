@@ -59,7 +59,7 @@ export async function sendLicenseApprovedEmail(resendApiKey, { to, centerName, l
             </div>
 
             <!-- CTA -->
-            <a href="https://career-guidance-platform.pages.dev/licencias"
+            <a href="https://labordadeltionicolas.com/licencias"
               style="display:inline-block;background:#4f46e5;color:#ffffff;font-size:15px;font-weight:600;padding:14px 32px;border-radius:10px;text-decoration:none;">
               Acceder al portal del centro →
             </a>

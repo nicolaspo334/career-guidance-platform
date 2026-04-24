@@ -9,10 +9,10 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-100">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5 font-bold text-xl text-slate-900">
-          <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-cyan-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">M</span>
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-sm font-stylish">E</span>
           </div>
-          MindPath
+          <span className="font-stylish">Elentio</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-8 text-sm">
@@ -36,7 +36,7 @@ export default function Navbar() {
           </Link>
           <Link
             href="/solicitar-licencia"
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
           >
             Solicitar licencia
           </Link>
@@ -76,7 +76,7 @@ export default function Navbar() {
           </Link>
           <Link
             href="/solicitar-licencia"
-            className="bg-indigo-600 text-white py-2 px-4 rounded-lg text-center font-medium"
+            className="bg-blue-600 text-white py-2 px-4 rounded-lg text-center font-medium"
             onClick={() => setOpen(false)}
           >
             Solicitar licencia

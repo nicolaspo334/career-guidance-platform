@@ -1,27 +1,49 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import { requestLicense } from '@/lib/api';
+
+function ElentioMark({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="14.5" stroke="#14152B" strokeOpacity="0.18" strokeWidth="1"/>
+      <path d="M16 2 L16 16" stroke="#14152B" strokeWidth="1.6" strokeLinecap="round"/>
+      <path d="M3.5 22.5 L16 16" stroke="#14152B" strokeWidth="1.6" strokeLinecap="round"/>
+      <path d="M28.5 22.5 L16 16" stroke="#14152B" strokeWidth="1.6" strokeLinecap="round"/>
+      <circle cx="16" cy="16" r="2.6" fill="#3B3FDB"/>
+      <circle cx="16" cy="16" r="5" stroke="#3B3FDB" strokeOpacity="0.35" strokeWidth="1"/>
+    </svg>
+  );
+}
+
+function PageHeader() {
+  return (
+    <header className="e-header">
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <ElentioMark size={22}/>
+          <span style={{ fontFamily: 'var(--font-instrument-serif), Georgia, serif', fontSize: 22, color: '#14152B', fontWeight: 400, letterSpacing: '-0.015em', lineHeight: 1, paddingTop: 2 }}>
+            elentio
+          </span>
+        </Link>
+        <Link href="/" className="btn-g" style={{ textDecoration: 'none', fontSize: 13 }}>
+          ← Volver al inicio
+        </Link>
+      </div>
+    </header>
+  );
+}
 
 export default function SolicitarLicencia() {
   const [form, setForm] = useState({
-    centerName: '',
-    centerType: '',
-    contactName: '',
-    email: '',
-    phone: '',
-    students: '',
-    message: '',
+    centerName: '', centerType: '', contactName: '',
+    email: '', phone: '', students: '', message: '',
   });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,178 +60,119 @@ export default function SolicitarLicencia() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <Navbar />
-        <div className="max-w-2xl mx-auto px-6 py-32 text-center">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">
+      <div className="e-page">
+        <PageHeader/>
+        <div style={{ maxWidth: 600, margin: '0 auto', padding: '80px 24px', textAlign: 'center' }}>
+          <div style={{ width: 72, height: 72, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 28px', fontSize: 28 }}>
             ✓
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-4">¡Solicitud enviada!</h1>
-          <p className="text-lg text-slate-600 mb-8">
+          <h1 style={{ fontFamily: 'var(--font-instrument-serif), Georgia, serif', fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 400, letterSpacing: '-0.02em', color: '#14152B', margin: '0 0 16px' }}>
+            ¡Solicitud enviada!
+          </h1>
+          <p style={{ fontSize: 16, color: '#5A5C72', lineHeight: 1.55, margin: '0 0 32px' }}>
             Hemos recibido la solicitud de licencia para{' '}
-            <strong>{form.centerName}</strong>. Nos pondremos en contacto con{' '}
-            <strong>{form.email}</strong> en las próximas 24–48 horas.
+            <strong style={{ color: '#14152B' }}>{form.centerName}</strong>. Nos pondremos en contacto con{' '}
+            <strong style={{ color: '#14152B' }}>{form.email}</strong> en las próximas 24–48 horas.
           </p>
-          <Link
-            href="/"
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-8 py-3 rounded-xl transition"
-          >
+          <Link href="/" className="btn-p lg" style={{ textDecoration: 'none' }}>
             Volver al inicio
           </Link>
         </div>
-        <Footer />
       </div>
     );
   }
 
+  const inputClass = 'e-input';
+  const labelClass = 'e-label';
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Navbar />
-      <div className="max-w-2xl mx-auto px-6 py-16">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-slate-900 mb-3">Solicitar licencia</h1>
-          <p className="text-lg text-slate-600">
+    <div className="e-page">
+      <PageHeader/>
+      <div style={{ maxWidth: 680, margin: '0 auto', padding: '56px 24px 80px' }}>
+        {/* Heading */}
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <p style={{ fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#5A5C72', marginBottom: 12 }}>Para centros educativos</p>
+          <h1 style={{ fontFamily: 'var(--font-instrument-serif), Georgia, serif', fontSize: 'clamp(36px, 5vw, 52px)', fontWeight: 400, letterSpacing: '-0.02em', color: '#14152B', margin: '0 0 12px' }}>
+            Solicitar licencia
+          </h1>
+          <p style={{ fontSize: 16, color: '#5A5C72', lineHeight: 1.5, margin: 0 }}>
             Rellena el formulario y nos pondremos en contacto para activar tu licencia.
           </p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 space-y-6"
-        >
-          <div className="grid sm:grid-cols-2 gap-6">
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Nombre del centro <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="centerName"
-                value={form.centerName}
-                onChange={handleChange}
-                required
-                placeholder="IES / Colegio / Centro..."
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
-              />
+        <div className="e-card" style={{ padding: '32px 36px', boxShadow: '0 4px 24px rgba(20,21,43,0.06)' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 20 }}>
+            <div>
+              <label className={labelClass}>Nombre del centro <span style={{ color: '#ef4444' }}>*</span></label>
+              <input type="text" name="centerName" value={form.centerName} onChange={handleChange}
+                required placeholder="IES / Colegio / Centro…" className={inputClass}/>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div>
+                <label className={labelClass}>Tipo de centro <span style={{ color: '#ef4444' }}>*</span></label>
+                <select name="centerType" value={form.centerType} onChange={handleChange} required
+                  className={inputClass} style={{ appearance: 'auto' }}>
+                  <option value="">Seleccionar…</option>
+                  <option value="ies">Instituto de Educación Secundaria (IES)</option>
+                  <option value="colegio_publico">Colegio público</option>
+                  <option value="colegio_concertado">Colegio concertado</option>
+                  <option value="colegio_privado">Colegio privado</option>
+                  <option value="fp">Centro de Formación Profesional</option>
+                  <option value="universidad">Universidad</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={labelClass}>Nº de estudiantes (aprox.) <span style={{ color: '#ef4444' }}>*</span></label>
+                <input type="number" name="students" value={form.students} onChange={handleChange}
+                  required min="1" placeholder="200" className={inputClass}/>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div>
+                <label className={labelClass}>Nombre de contacto <span style={{ color: '#ef4444' }}>*</span></label>
+                <input type="text" name="contactName" value={form.contactName} onChange={handleChange}
+                  required placeholder="Nombre y apellidos" className={inputClass}/>
+              </div>
+
+              <div>
+                <label className={labelClass}>Correo electrónico <span style={{ color: '#ef4444' }}>*</span></label>
+                <input type="email" name="email" value={form.email} onChange={handleChange}
+                  required placeholder="orientacion@instituto.es" className={inputClass}/>
+              </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Tipo de centro <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="centerType"
-                value={form.centerType}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 bg-white"
-              >
-                <option value="">Seleccionar...</option>
-                <option value="ies">Instituto de Educación Secundaria (IES)</option>
-                <option value="colegio_publico">Colegio público</option>
-                <option value="colegio_concertado">Colegio concertado</option>
-                <option value="colegio_privado">Colegio privado</option>
-                <option value="fp">Centro de Formación Profesional</option>
-                <option value="universidad">Universidad</option>
-                <option value="otro">Otro</option>
-              </select>
+              <label className={labelClass}>Teléfono</label>
+              <input type="tel" name="phone" value={form.phone} onChange={handleChange}
+                placeholder="+34 600 000 000" className={inputClass}/>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Número de estudiantes (aprox.) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                name="students"
-                value={form.students}
-                onChange={handleChange}
-                required
-                min="1"
-                placeholder="200"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
-              />
+              <label className={labelClass}>Mensaje (opcional)</label>
+              <textarea name="message" value={form.message} onChange={handleChange}
+                rows={4} placeholder="Cuéntanos más sobre vuestras necesidades…"
+                className={inputClass} style={{ resize: 'none', height: 'auto' }}/>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Nombre de contacto <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="contactName"
-                value={form.contactName}
-                onChange={handleChange}
-                required
-                placeholder="Nombre y apellidos"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
-              />
-            </div>
+            {error && <p className="e-error">{error}</p>}
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Correo electrónico <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                required
-                placeholder="orientacion@instituto.es"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
-              />
-            </div>
+            <button type="submit" disabled={loading} className="btn-p lg"
+              style={{ width: '100%', justifyContent: 'center', marginTop: 4 }}>
+              {loading ? 'Enviando…' : 'Enviar solicitud'}
+            </button>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Teléfono</label>
-              <input
-                type="tel"
-                name="phone"
-                value={form.phone}
-                onChange={handleChange}
-                placeholder="+34 600 000 000"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Mensaje (opcional)
-              </label>
-              <textarea
-                name="message"
-                value={form.message}
-                onChange={handleChange}
-                rows={4}
-                placeholder="Cuéntanos más sobre vuestras necesidades..."
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 resize-none"
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-lg">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3.5 rounded-xl transition text-lg cursor-pointer"
-          >
-            {loading ? 'Enviando...' : 'Enviar solicitud'}
-          </button>
-
-          <p className="text-xs text-slate-500 text-center">
-            Al enviar aceptas nuestra{' '}
-            <Link href="#" className="text-indigo-600 hover:underline">política de privacidad</Link>.
-            Tus datos serán tratados conforme al RGPD.
-          </p>
-        </form>
+            <p style={{ fontSize: 12, color: '#8A8DA1', textAlign: 'center', margin: 0 }}>
+              Al enviar aceptas nuestra{' '}
+              <Link href="#" style={{ color: '#3B3FDB', textDecoration: 'none' }}>política de privacidad</Link>.
+              Tus datos serán tratados conforme al RGPD.
+            </p>
+          </form>
+        </div>
       </div>
-      <Footer />
     </div>
   );
 }

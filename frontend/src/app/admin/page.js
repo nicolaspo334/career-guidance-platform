@@ -28,10 +28,10 @@ export default function AdminLogin() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2.5 font-bold text-xl text-white">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-cyan-600 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold">M</span>
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+              <span className="text-white font-bold font-stylish">E</span>
             </div>
-            MindPath
+            <span className="font-stylish">Elentio</span>
           </Link>
           <p className="text-slate-400 text-sm mt-2">Panel de administración</p>
         </div>

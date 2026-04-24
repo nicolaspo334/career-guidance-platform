@@ -5,18 +5,31 @@ import Link from 'next/link';
 import {
   getCenterInfo, getCenterUsers, createCenterUser,
   deactivateUser, reactivateUser, centerLogout,
-  isCenterLoggedIn, getStoredCenterName,
+  isCenterLoggedIn,
 } from '@/lib/api';
 
+function ElentioMark({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="14.5" stroke="#14152B" strokeOpacity="0.18" strokeWidth="1"/>
+      <path d="M16 2 L16 16" stroke="#14152B" strokeWidth="1.6" strokeLinecap="round"/>
+      <path d="M3.5 22.5 L16 16" stroke="#14152B" strokeWidth="1.6" strokeLinecap="round"/>
+      <path d="M28.5 22.5 L16 16" stroke="#14152B" strokeWidth="1.6" strokeLinecap="round"/>
+      <circle cx="16" cy="16" r="2.6" fill="#3B3FDB"/>
+      <circle cx="16" cy="16" r="5" stroke="#3B3FDB" strokeOpacity="0.35" strokeWidth="1"/>
+    </svg>
+  );
+}
+
 export default function LicenciasDashboard() {
-  const [license, setLicense]       = useState(null);
-  const [users, setUsers]           = useState([]);
-  const [tab, setTab]               = useState('usuarios');
-  const [newUser, setNewUser]       = useState({ name: '', email: '' });
+  const [license, setLicense]         = useState(null);
+  const [users, setUsers]             = useState([]);
+  const [tab, setTab]                 = useState('usuarios');
+  const [newUser, setNewUser]         = useState({ name: '', email: '' });
   const [createdUser, setCreatedUser] = useState(null);
   const [copiedValue, setCopiedValue] = useState(null);
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState('');
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState('');
   const router = useRouter();
 
   const load = useCallback(async () => {
@@ -51,18 +64,14 @@ export default function LicenciasDashboard() {
   };
 
   const handleDeactivate = async (userId) => {
-    if (!confirm('¿Eliminar este alumno? Se liberará su plaza en la licencia.')) return;
-    try {
-      await deactivateUser(userId);
-      await load();
-    } catch (e) { setError(e.message); }
+    if (!confirm('¿Quitar la plaza de este alumno? Se liberará un espacio en la licencia.')) return;
+    try { await deactivateUser(userId); await load(); }
+    catch (e) { setError(e.message); }
   };
 
   const handleReactivate = async (userId) => {
-    try {
-      await reactivateUser(userId);
-      await load();
-    } catch (e) { setError(e.message); }
+    try { await reactivateUser(userId); await load(); }
+    catch (e) { setError(e.message); }
   };
 
   const copy = (val) => {
@@ -76,83 +85,79 @@ export default function LicenciasDashboard() {
   if (!license) return null;
 
   const available = license.max_users - license.used_users;
+  const usagePct = Math.min(100, (license.used_users / license.max_users) * 100);
+  const usageColor = usagePct > 90 ? '#ef4444' : usagePct > 70 ? '#f59e0b' : '#22c55e';
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="e-page">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 font-bold text-xl text-slate-900">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-cyan-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">M</span>
-            </div>
-            MindPath
+      <header className="e-header">
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <ElentioMark size={22}/>
+            <span style={{ fontFamily: 'var(--font-instrument-serif), Georgia, serif', fontSize: 22, color: '#14152B', fontWeight: 400, letterSpacing: '-0.015em', lineHeight: 1, paddingTop: 2 }}>
+              elentio
+            </span>
           </Link>
-          <div className="flex items-center gap-4">
-            <span className="text-slate-600 text-sm hidden sm:block">{license.center_name}</span>
-            <button onClick={logout} className="text-slate-400 hover:text-slate-600 text-sm transition cursor-pointer">
-              Cerrar sesión
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <span style={{ fontSize: 14, color: '#5A5C72' }}>{license.center_name}</span>
+            <button onClick={logout} className="btn-g" style={{ fontSize: 13 }}>Cerrar sesión</button>
           </div>
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px' }}>
+        {/* Error */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 text-sm flex justify-between">
-            {error}
-            <button onClick={() => setError('')} className="cursor-pointer">✕</button>
+          <div className="e-error" style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>{error}</span>
+            <button onClick={() => setError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 16, lineHeight: 1 }}>✕</button>
           </div>
         )}
 
-        {/* License info */}
-        <div className="grid sm:grid-cols-4 gap-4 mb-8">
-          <div className="sm:col-span-2 bg-indigo-600 rounded-xl p-5 text-white">
-            <div className="text-xs text-indigo-300 font-medium mb-1">Código de licencia</div>
-            <code className="text-xl font-bold tracking-widest">{license.code}</code>
+        {/* License stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14, marginBottom: 20 }}>
+          {/* License code */}
+          <div style={{ gridColumn: 'span 2', background: '#14152B', borderRadius: 14, padding: '20px 22px', color: '#F5F2EA', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(245,242,234,0.5)', marginBottom: 6 }}>Código de licencia</div>
+              <code style={{ fontSize: 20, fontWeight: 700, letterSpacing: '0.1em' }}>{license.code}</code>
+            </div>
             {license.revoked === 1 && (
-              <span className="ml-3 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">Revocada</span>
+              <span style={{ background: '#ef4444', color: '#fff', fontSize: 11, padding: '4px 10px', borderRadius: 999, fontWeight: 600 }}>Revocada</span>
             )}
           </div>
-          <div className="bg-white rounded-xl p-5 border border-slate-200">
-            <div className="text-2xl font-bold text-slate-900">{license.used_users}</div>
-            <div className="text-slate-500 text-sm mt-1">Alumnos activos</div>
+
+          <div className="e-card" style={{ padding: '20px 22px' }}>
+            <div style={{ fontFamily: 'var(--font-instrument-serif), serif', fontSize: 36, color: '#14152B', lineHeight: 1 }}>{license.used_users}</div>
+            <div style={{ fontSize: 13, color: '#5A5C72', marginTop: 6 }}>Alumnos activos</div>
           </div>
-          <div className={`rounded-xl p-5 border ${available > 0 ? 'bg-white border-slate-200' : 'bg-amber-50 border-amber-200'}`}>
-            <div className={`text-2xl font-bold ${available > 0 ? 'text-green-600' : 'text-amber-600'}`}>
-              {available}
-            </div>
-            <div className="text-slate-500 text-sm mt-1">Plazas disponibles</div>
+
+          <div className="e-card" style={{ padding: '20px 22px', background: available > 0 ? '#fff' : 'rgba(245,158,11,0.06)', borderColor: available > 0 ? 'rgba(20,21,43,0.08)' : 'rgba(245,158,11,0.25)' }}>
+            <div style={{ fontFamily: 'var(--font-instrument-serif), serif', fontSize: 36, lineHeight: 1, color: available > 0 ? '#22c55e' : '#f59e0b' }}>{available}</div>
+            <div style={{ fontSize: 13, color: '#5A5C72', marginTop: 6 }}>Plazas disponibles</div>
           </div>
         </div>
 
         {/* Capacity bar */}
-        <div className="bg-white rounded-xl p-5 border border-slate-200 mb-8">
-          <div className="flex justify-between text-sm text-slate-600 mb-2">
+        <div className="e-card" style={{ padding: '18px 22px', marginBottom: 28 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#5A5C72', marginBottom: 10 }}>
             <span>Uso de la licencia</span>
-            <span>{license.used_users} / {license.max_users} alumnos</span>
+            <span style={{ fontWeight: 500, color: '#14152B' }}>{license.used_users} / {license.max_users} alumnos</span>
           </div>
-          <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all ${
-                license.used_users / license.max_users > 0.9 ? 'bg-red-500' :
-                license.used_users / license.max_users > 0.7 ? 'bg-amber-500' : 'bg-green-500'
-              }`}
-              style={{ width: `${Math.min(100, (license.used_users / license.max_users) * 100)}%` }}
-            />
+          <div style={{ height: 6, background: 'rgba(20,21,43,0.07)', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${usagePct}%`, background: usageColor, borderRadius: 3, transition: 'width 0.5s ease' }}/>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-slate-200 rounded-xl p-1 mb-6 w-fit">
+        <div className="e-tab-bar" style={{ marginBottom: 24 }}>
           {[
             { key: 'usuarios', label: `Alumnos (${users.filter(u => u.active).length})` },
             { key: 'anadir', label: 'Añadir alumno' },
           ].map((t) => (
-            <button key={t.key} onClick={() => { setTab(t.key); setCreatedUser(null); }}
-              className={`px-5 py-2 rounded-lg text-sm font-medium transition cursor-pointer ${
-                tab === t.key ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}>
+            <button key={t.key} className={`e-tab${tab === t.key ? ' active' : ''}`}
+              onClick={() => { setTab(t.key); setCreatedUser(null); }}>
               {t.label}
             </button>
           ))}
@@ -160,33 +165,31 @@ export default function LicenciasDashboard() {
 
         {/* ── ALUMNOS ── */}
         {tab === 'usuarios' && (
-          <div className="space-y-3">
+          <div style={{ display: 'grid', gap: 10 }}>
             {users.length === 0 ? (
-              <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
-                <div className="text-4xl mb-3">👩‍🎓</div>
-                <p className="text-slate-500">No hay alumnos registrados aún</p>
-                <button onClick={() => setTab('anadir')}
-                  className="mt-4 text-indigo-600 hover:text-indigo-700 text-sm font-medium cursor-pointer">
+              <div className="e-card" style={{ padding: '56px 32px', textAlign: 'center' }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>👩‍🎓</div>
+                <p style={{ color: '#5A5C72', margin: '0 0 16px' }}>No hay alumnos registrados aún</p>
+                <button onClick={() => setTab('anadir')} className="btn-p">
                   Añadir el primer alumno →
                 </button>
               </div>
             ) : (
               <>
-                {/* Active */}
                 {users.filter(u => u.active).length > 0 && (
                   <div>
-                    <h3 className="text-sm font-medium text-slate-500 mb-2 px-1">Activos</h3>
+                    <p style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8A8DA1', margin: '0 0 8px 4px' }}>Activos</p>
                     {users.filter(u => u.active).map(u => (
-                      <div key={u.id} className="bg-white rounded-xl px-5 py-4 border border-slate-200 flex items-center justify-between mb-2">
+                      <div key={u.id} className="e-card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                         <div>
-                          <div className="font-medium text-slate-900">{u.name}</div>
-                          <div className="text-slate-500 text-sm">{u.email}</div>
-                          <div className="text-slate-400 text-xs mt-0.5">
+                          <div style={{ fontWeight: 600, fontSize: 14, color: '#14152B' }}>{u.name}</div>
+                          <div style={{ fontSize: 13, color: '#5A5C72', marginTop: 2 }}>{u.email}</div>
+                          <div style={{ fontSize: 11, color: '#8A8DA1', marginTop: 2 }}>
                             Registrado {new Date(u.created_at).toLocaleDateString('es-ES')}
                           </div>
                         </div>
                         <button onClick={() => handleDeactivate(u.id)}
-                          className="text-xs text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition cursor-pointer">
+                          style={{ fontSize: 12, color: '#ef4444', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
                           Quitar plaza
                         </button>
                       </div>
@@ -194,18 +197,17 @@ export default function LicenciasDashboard() {
                   </div>
                 )}
 
-                {/* Inactive */}
                 {users.filter(u => !u.active).length > 0 && (
-                  <div className="mt-4">
-                    <h3 className="text-sm font-medium text-slate-400 mb-2 px-1">Desactivados</h3>
+                  <div style={{ marginTop: 16 }}>
+                    <p style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8A8DA1', margin: '0 0 8px 4px' }}>Desactivados</p>
                     {users.filter(u => !u.active).map(u => (
-                      <div key={u.id} className="bg-slate-50 rounded-xl px-5 py-4 border border-slate-100 flex items-center justify-between mb-2 opacity-60">
+                      <div key={u.id} style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(20,21,43,0.03)', border: '1px solid rgba(20,21,43,0.06)', borderRadius: 12, marginBottom: 8, opacity: 0.65 }}>
                         <div>
-                          <div className="font-medium text-slate-600">{u.name}</div>
-                          <div className="text-slate-400 text-sm">{u.email}</div>
+                          <div style={{ fontWeight: 600, fontSize: 14, color: '#14152B' }}>{u.name}</div>
+                          <div style={{ fontSize: 13, color: '#5A5C72' }}>{u.email}</div>
                         </div>
                         <button onClick={() => handleReactivate(u.id)}
-                          className="text-xs text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg transition cursor-pointer">
+                          style={{ fontSize: 12, color: '#16a34a', background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>
                           Reactivar
                         </button>
                       </div>
@@ -219,68 +221,66 @@ export default function LicenciasDashboard() {
 
         {/* ── AÑADIR ── */}
         {tab === 'anadir' && (
-          <div className="max-w-md">
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-              <h2 className="font-semibold text-slate-900 mb-1">Añadir alumno manualmente</h2>
-              <p className="text-slate-500 text-sm mb-5">
+          <div style={{ maxWidth: 460 }}>
+            <div className="e-card" style={{ padding: '24px 28px' }}>
+              <h2 style={{ fontFamily: 'var(--font-instrument-serif), serif', fontSize: 22, fontWeight: 400, color: '#14152B', margin: '0 0 6px' }}>
+                Añadir alumno manualmente
+              </h2>
+              <p style={{ fontSize: 13, color: '#5A5C72', margin: '0 0 22px', lineHeight: 1.5 }}>
                 Se generará una contraseña segura automáticamente. Compártela con el alumno.
               </p>
 
               {available <= 0 && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-700 text-sm px-4 py-3 rounded-lg mb-4">
+                <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.25)', color: '#b45309', fontSize: 13, padding: '10px 14px', borderRadius: 10, marginBottom: 18 }}>
                   No quedan plazas disponibles en tu licencia.
                 </div>
               )}
 
-              <form onSubmit={handleCreateUser} className="space-y-4">
+              <form onSubmit={handleCreateUser} style={{ display: 'grid', gap: 16 }}>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Nombre completo</label>
+                  <label className="e-label">Nombre completo</label>
                   <input type="text" value={newUser.name}
                     onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                    required placeholder="Nombre Apellido"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900" />
+                    required placeholder="Nombre Apellido" className="e-input"/>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+                  <label className="e-label">Email</label>
                   <input type="email" value={newUser.email}
                     onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                    required placeholder="alumno@email.es"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900" />
+                    required placeholder="alumno@email.es" className="e-input"/>
                 </div>
-                <button type="submit" disabled={loading || available <= 0}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-semibold py-3 rounded-xl transition cursor-pointer">
-                  {loading ? 'Creando...' : 'Crear alumno y generar contraseña'}
+                <button type="submit" disabled={loading || available <= 0} className="btn-p lg"
+                  style={{ width: '100%', justifyContent: 'center', opacity: loading || available <= 0 ? 0.5 : 1 }}>
+                  {loading ? 'Creando…' : 'Crear alumno y generar contraseña'}
                 </button>
               </form>
             </div>
 
             {createdUser && (
-              <div className="mt-4 bg-green-50 border border-green-200 rounded-2xl p-5">
-                <div className="flex items-center gap-2 text-green-700 font-semibold mb-2">
-                  <span>✓</span> Alumno creado — copia las credenciales ahora
-                </div>
-                <p className="text-xs text-green-600 mb-3">
+              <div className="e-success" style={{ marginTop: 16, borderRadius: 14, padding: '20px 22px' }}>
+                <div style={{ fontWeight: 600, marginBottom: 6 }}>✓ Alumno creado — copia las credenciales ahora</div>
+                <p style={{ fontSize: 12, margin: '0 0 14px', opacity: 0.8 }}>
                   La contraseña solo se muestra una vez. Envíasela al alumno por un canal seguro.
                 </p>
-                <div className="space-y-2">
+                <div style={{ display: 'grid', gap: 8 }}>
                   {[
                     { label: 'Email', value: createdUser.email },
                     { label: 'Contraseña', value: createdUser.password },
                   ].map(({ label, value }) => (
-                    <div key={label} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-green-200">
+                    <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', borderRadius: 10, padding: '10px 14px', border: '1px solid rgba(34,197,94,0.2)' }}>
                       <div>
-                        <div className="text-xs text-slate-400">{label}</div>
-                        <code className="text-slate-800 text-sm font-bold">{value}</code>
+                        <div style={{ fontSize: 11, color: '#8A8DA1', marginBottom: 2 }}>{label}</div>
+                        <code style={{ fontSize: 14, fontWeight: 700, color: '#14152B' }}>{value}</code>
                       </div>
                       <button onClick={() => copy(value)}
-                        className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded cursor-pointer ml-2">
+                        style={{ fontSize: 12, background: 'rgba(20,21,43,0.06)', border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontFamily: 'inherit', color: '#14152B', marginLeft: 8, whiteSpace: 'nowrap' }}>
                         {copiedValue === value ? '¡Copiado!' : 'Copiar'}
                       </button>
                     </div>
                   ))}
                 </div>
                 <button onClick={() => setCreatedUser(null)}
-                  className="mt-3 text-xs text-green-600 hover:text-green-800 cursor-pointer">
+                  style={{ marginTop: 14, fontSize: 12, background: 'none', border: 'none', color: '#16a34a', cursor: 'pointer', fontFamily: 'inherit' }}>
                   Ya he copiado las credenciales →
                 </button>
               </div>

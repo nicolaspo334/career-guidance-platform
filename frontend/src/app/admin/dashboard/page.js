@@ -131,8 +131,8 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2 text-white font-bold">
-              <div className="w-7 h-7 bg-gradient-to-br from-indigo-600 to-cyan-600 rounded-md flex items-center justify-center text-xs">M</div>
-              MindPath
+              <div className="w-7 h-7 bg-blue-600 rounded-md flex items-center justify-center text-xs font-stylish text-white">E</div>
+              <span className="font-stylish">Elentio</span>
             </Link>
             <span className="text-slate-600">/</span>
             <span className="text-slate-400 text-sm">Administración</span>

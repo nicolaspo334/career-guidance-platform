@@ -4,6 +4,19 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { userLogin, userRegister } from '@/lib/api';
 
+function ElentioMark({ size = 28 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="14.5" stroke="#14152B" strokeOpacity="0.18" strokeWidth="1"/>
+      <path d="M16 2 L16 16" stroke="#14152B" strokeWidth="1.6" strokeLinecap="round"/>
+      <path d="M3.5 22.5 L16 16" stroke="#14152B" strokeWidth="1.6" strokeLinecap="round"/>
+      <path d="M28.5 22.5 L16 16" stroke="#14152B" strokeWidth="1.6" strokeLinecap="round"/>
+      <circle cx="16" cy="16" r="2.6" fill="#3B3FDB"/>
+      <circle cx="16" cy="16" r="5" stroke="#3B3FDB" strokeOpacity="0.35" strokeWidth="1"/>
+    </svg>
+  );
+}
+
 export default function Login() {
   const [tab, setTab] = useState('login');
   const [error, setError] = useState('');
@@ -54,145 +67,106 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex flex-col items-center gap-2">
-            <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-cyan-600 rounded-2xl flex items-center justify-center">
-              <span className="text-white font-bold text-2xl">M</span>
-            </div>
-            <span className="text-white font-bold text-2xl">MindPath</span>
-          </Link>
+    <div className="e-page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', minHeight: '100vh' }}>
+      <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 36 }}>
+        <ElentioMark size={28}/>
+        <span style={{ fontFamily: 'var(--font-instrument-serif), Georgia, serif', fontSize: 26, color: '#14152B', fontWeight: 400, letterSpacing: '-0.015em', lineHeight: 1, paddingTop: 2 }}>
+          elentio
+        </span>
+      </Link>
+
+      <div className="e-card" style={{ width: '100%', maxWidth: 400, overflow: 'hidden', boxShadow: '0 4px 24px rgba(20,21,43,0.08)' }}>
+        {/* Tabs */}
+        <div style={{ display: 'flex', borderBottom: '1px solid rgba(20,21,43,0.08)' }}>
+          {[
+            { key: 'login', label: 'Ya tengo cuenta' },
+            { key: 'register', label: 'Primera vez' },
+          ].map((t) => (
+            <button
+              key={t.key}
+              onClick={() => { setTab(t.key); setError(''); }}
+              style={{
+                flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 500,
+                fontFamily: 'inherit', border: 'none', cursor: 'pointer',
+                background: 'transparent',
+                color: tab === t.key ? '#3B3FDB' : '#8A8DA1',
+                borderBottom: tab === t.key ? '2px solid #3B3FDB' : '2px solid transparent',
+                transition: 'color 0.15s',
+                marginBottom: -1,
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
 
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-          {/* Tabs */}
-          <div className="flex border-b border-slate-100">
-            {[
-              { key: 'login', label: 'Ya tengo cuenta' },
-              { key: 'register', label: 'Primera vez' },
-            ].map((t) => (
-              <button
-                key={t.key}
-                onClick={() => { setTab(t.key); setError(''); }}
-                className={`flex-1 py-3.5 text-sm font-medium transition cursor-pointer ${
-                  tab === t.key
-                    ? 'text-indigo-600 border-b-2 border-indigo-600'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {t.label}
+        <div style={{ padding: 28 }}>
+          {tab === 'login' && (
+            <form onSubmit={handleLogin} style={{ display: 'grid', gap: 16 }}>
+              <div>
+                <label className="e-label">Email</label>
+                <input type="email" value={loginForm.email}
+                  onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                  required placeholder="tu@email.es" className="e-input"/>
+              </div>
+              <div>
+                <label className="e-label">Contraseña</label>
+                <input type="password" value={loginForm.password}
+                  onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                  required placeholder="••••••••" className="e-input"/>
+              </div>
+              {error && <p className="e-error">{error}</p>}
+              <button type="submit" disabled={loading} className="btn-p lg" style={{ width: '100%', marginTop: 4, justifyContent: 'center' }}>
+                {loading ? 'Entrando…' : 'Iniciar sesión'}
               </button>
-            ))}
-          </div>
+            </form>
+          )}
 
-          <div className="p-8">
-            {/* Login */}
-            {tab === 'login' && (
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
-                  <input
-                    type="email"
-                    value={loginForm.email}
-                    onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                    required
-                    placeholder="tu@email.es"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Contraseña</label>
-                  <input
-                    type="password"
-                    value={loginForm.password}
-                    onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                    required
-                    placeholder="••••••••"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
-                  />
-                </div>
-                {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-2.5 rounded-lg">{error}</p>}
-                <button type="submit" disabled={loading}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 rounded-xl transition cursor-pointer">
-                  {loading ? 'Entrando...' : 'Iniciar sesión'}
-                </button>
-              </form>
-            )}
-
-            {/* Register */}
-            {tab === 'register' && (
-              <form onSubmit={handleRegister} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Nombre completo</label>
-                  <input
-                    type="text"
-                    value={registerForm.name}
-                    onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
-                    required
-                    placeholder="Nombre Apellido"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
-                  <input
-                    type="email"
-                    value={registerForm.email}
-                    onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
-                    required
-                    placeholder="tu@email.es"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Contraseña</label>
-                  <input
-                    type="password"
-                    value={registerForm.password}
-                    onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
-                    required
-                    placeholder="Mínimo 8 caracteres"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Confirmar contraseña</label>
-                  <input
-                    type="password"
-                    value={registerForm.confirm}
-                    onChange={(e) => setRegisterForm({ ...registerForm, confirm: e.target.value })}
-                    required
-                    placeholder="Repite la contraseña"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Código de licencia</label>
-                  <input
-                    type="text"
-                    value={registerForm.licenseCode}
-                    onChange={(e) => setRegisterForm({ ...registerForm, licenseCode: e.target.value.toUpperCase() })}
-                    required
-                    placeholder="MIND-XXXX-XXXX"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 font-mono"
-                  />
-                  <p className="text-xs text-slate-400 mt-1">Proporcionado por tu centro educativo</p>
-                </div>
-                {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-2.5 rounded-lg">{error}</p>}
-                <button type="submit" disabled={loading}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 rounded-xl transition cursor-pointer">
-                  {loading ? 'Creando cuenta...' : 'Crear cuenta y entrar'}
-                </button>
-              </form>
-            )}
-          </div>
+          {tab === 'register' && (
+            <form onSubmit={handleRegister} style={{ display: 'grid', gap: 16 }}>
+              <div>
+                <label className="e-label">Nombre completo</label>
+                <input type="text" value={registerForm.name}
+                  onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
+                  required placeholder="Nombre Apellido" className="e-input"/>
+              </div>
+              <div>
+                <label className="e-label">Email</label>
+                <input type="email" value={registerForm.email}
+                  onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
+                  required placeholder="tu@email.es" className="e-input"/>
+              </div>
+              <div>
+                <label className="e-label">Contraseña</label>
+                <input type="password" value={registerForm.password}
+                  onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
+                  required placeholder="Mínimo 8 caracteres" className="e-input"/>
+              </div>
+              <div>
+                <label className="e-label">Confirmar contraseña</label>
+                <input type="password" value={registerForm.confirm}
+                  onChange={(e) => setRegisterForm({ ...registerForm, confirm: e.target.value })}
+                  required placeholder="Repite la contraseña" className="e-input"/>
+              </div>
+              <div>
+                <label className="e-label">Código de licencia</label>
+                <input type="text" value={registerForm.licenseCode}
+                  onChange={(e) => setRegisterForm({ ...registerForm, licenseCode: e.target.value.toUpperCase() })}
+                  required placeholder="MIND-XXXX-XXXX" className="e-input" style={{ fontFamily: 'monospace', letterSpacing: '0.05em' }}/>
+                <p style={{ fontSize: 12, color: '#8A8DA1', marginTop: 4 }}>Proporcionado por tu centro educativo</p>
+              </div>
+              {error && <p className="e-error">{error}</p>}
+              <button type="submit" disabled={loading} className="btn-p lg" style={{ width: '100%', marginTop: 4, justifyContent: 'center' }}>
+                {loading ? 'Creando cuenta…' : 'Crear cuenta y entrar'}
+              </button>
+            </form>
+          )}
         </div>
-
-        <p className="text-center text-slate-500 text-sm mt-6">
-          <Link href="/" className="hover:text-slate-300 transition">← Volver al inicio</Link>
-        </p>
       </div>
+
+      <p style={{ marginTop: 24, fontSize: 13, color: '#8A8DA1' }}>
+        <Link href="/" style={{ color: '#5A5C72', textDecoration: 'none' }}>← Volver al inicio</Link>
+      </p>
     </div>
   );
 }
