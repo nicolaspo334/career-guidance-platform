@@ -9,9 +9,9 @@ async function request(path, options = {}, token = null) {
   return data;
 }
 
-const getAdminToken  = () => sessionStorage.getItem('mindpath_admin_token');
-const getUserToken   = () => sessionStorage.getItem('mindpath_user_token');
-const getCenterToken = () => sessionStorage.getItem('mindpath_center_token');
+const getAdminToken  = () => sessionStorage.getItem('elentio_admin_token');
+const getUserToken   = () => sessionStorage.getItem('elentio_user_token');
+const getCenterToken = () => sessionStorage.getItem('elentio_center_token');
 
 // ── Setup ──────────────────────────────────────────────────────────────────────
 export const checkSetup = () => request('/api/setup/status');
@@ -20,10 +20,10 @@ export const runSetup   = (password) => request('/api/setup', { method: 'POST', 
 // ── Admin auth ─────────────────────────────────────────────────────────────────
 export async function adminLogin(password) {
   const data = await request('/api/admin/login', { method: 'POST', body: JSON.stringify({ password }) });
-  sessionStorage.setItem('mindpath_admin_token', data.token);
+  sessionStorage.setItem('elentio_admin_token', data.token);
   return data;
 }
-export function adminLogout() { sessionStorage.removeItem('mindpath_admin_token'); }
+export function adminLogout() { sessionStorage.removeItem('elentio_admin_token'); }
 export const isAdminLoggedIn = () => !!getAdminToken();
 
 // ── Admin: requests ────────────────────────────────────────────────────────────
@@ -54,29 +54,29 @@ export const requestLicense = (formData) =>
 // ── Center auth ────────────────────────────────────────────────────────────────
 export async function centerLogin(email, password) {
   const data = await request('/api/center/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-  sessionStorage.setItem('mindpath_center_token', data.token);
-  sessionStorage.setItem('mindpath_center_name', data.centerName);
-  sessionStorage.setItem('mindpath_center_email', email);
+  sessionStorage.setItem('elentio_center_token', data.token);
+  sessionStorage.setItem('elentio_center_name', data.centerName);
+  sessionStorage.setItem('elentio_center_email', email);
   return data;
 }
 export async function centerChangePassword(currentPassword, newPassword) {
-  const email = sessionStorage.getItem('mindpath_center_email') || '';
+  const email = sessionStorage.getItem('elentio_center_email') || '';
   const data = await request('/api/center/change-password', {
     method: 'POST',
     body: JSON.stringify({ email, currentPassword, newPassword }),
   });
   // Refresh token after password change
-  sessionStorage.setItem('mindpath_center_token', data.token);
+  sessionStorage.setItem('elentio_center_token', data.token);
   return data;
 }
 export function centerLogout() {
-  sessionStorage.removeItem('mindpath_center_token');
-  sessionStorage.removeItem('mindpath_center_name');
-  sessionStorage.removeItem('mindpath_center_email');
+  sessionStorage.removeItem('elentio_center_token');
+  sessionStorage.removeItem('elentio_center_name');
+  sessionStorage.removeItem('elentio_center_email');
 }
 export const isCenterLoggedIn    = () => !!getCenterToken();
-export const getStoredCenterName = () => sessionStorage.getItem('mindpath_center_name') || '';
-export const getStoredCenterEmail = () => sessionStorage.getItem('mindpath_center_email') || '';
+export const getStoredCenterName = () => sessionStorage.getItem('elentio_center_name') || '';
+export const getStoredCenterEmail = () => sessionStorage.getItem('elentio_center_email') || '';
 
 // ── Center: management ─────────────────────────────────────────────────────────
 export const getCenterInfo       = () => request('/api/center/info', {}, getCenterToken());
@@ -91,30 +91,50 @@ export const reactivateUser      = (userId) =>
 // ── User auth ──────────────────────────────────────────────────────────────────
 export async function userLogin(email, password) {
   const data = await request('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-  sessionStorage.setItem('mindpath_user_token', data.token);
-  sessionStorage.setItem('mindpath_user', JSON.stringify({ name: data.name, email: data.email }));
-  sessionStorage.setItem('mindpath_user_email', email);
+  sessionStorage.setItem('elentio_user_token', data.token);
+  sessionStorage.setItem('elentio_user', JSON.stringify({ name: data.name, email: data.email }));
+  sessionStorage.setItem('elentio_user_email', email);
   return data;
 }
 
 export async function userChangePassword(currentPassword, newPassword) {
-  const email = sessionStorage.getItem('mindpath_user_email') || '';
+  const email = sessionStorage.getItem('elentio_user_email') || '';
   const data = await request('/api/auth/change-password', {
     method: 'POST',
     body: JSON.stringify({ email, currentPassword, newPassword }),
   });
-  sessionStorage.setItem('mindpath_user_token', data.token);
+  sessionStorage.setItem('elentio_user_token', data.token);
   return data;
 }
 export async function userRegister(name, email, password, licenseCode) {
   const data = await request('/api/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password, licenseCode }) });
-  sessionStorage.setItem('mindpath_user_token', data.token);
-  sessionStorage.setItem('mindpath_user', JSON.stringify({ name: data.name, email: data.email }));
+  sessionStorage.setItem('elentio_user_token', data.token);
+  sessionStorage.setItem('elentio_user', JSON.stringify({ name: data.name, email: data.email }));
   return data;
 }
 export function userLogout() {
-  sessionStorage.removeItem('mindpath_user_token');
-  sessionStorage.removeItem('mindpath_user');
+  sessionStorage.removeItem('elentio_user_token');
+  sessionStorage.removeItem('elentio_user');
 }
-export const getStoredUser  = () => { const s = sessionStorage.getItem('mindpath_user'); return s ? JSON.parse(s) : null; };
+export const getStoredUser  = () => { const s = sessionStorage.getItem('elentio_user'); return s ? JSON.parse(s) : null; };
 export const isUserLoggedIn = () => !!getUserToken();
+
+// ── Test ───────────────────────────────────────────────────────────────────────
+export const submitMbtiTest = (answers, riasecScores, skillsScores, valuesProfile) =>
+  request('/api/test/mbti', { method: 'POST', body: JSON.stringify({ answers, riasecScores, skillsScores, valuesProfile }) }, getUserToken());
+export const getTestResults = () => request('/api/test/results', {}, getUserToken());
+
+// ── Degrees ────────────────────────────────────────────────────────────────────
+function profileParams(p) {
+  return new URLSearchParams({
+    ei: p.EI, sn: p.SN, tf: p.TF, jp: p.JP,
+    r: p.R, i: p.I, a: p.A, s: p.S, e: p.E, c: p.C,
+    o: p.O, nc: p.NC, ne: p.NE, na: p.NA, nn: p.NN,
+  }).toString();
+}
+export const getDegreeCategories = (profile) =>
+  request(`/api/degrees/categories?${profileParams(profile)}`);
+export const getDegreeCategory = (id, profile) =>
+  request(`/api/degrees/category/${id}?${profileParams(profile)}`);
+export const getDegreeType = (id) =>
+  request(`/api/degrees/type/${id}`);

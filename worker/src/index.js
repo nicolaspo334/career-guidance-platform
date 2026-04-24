@@ -4,6 +4,58 @@ import {
 } from './crypto.js';
 import { sendLicenseApprovedEmail } from './email.js';
 
+// ── Career database ───────────────────────────────────────────────────────────
+// ideal: EI (0=I,100=E) · SN (0=N,100=S) · TF (0=F,100=T) · JP (0=P,100=J)
+// future: job market outlook 0-100
+
+// ideal: EI/SN/TF/JP (MBTI), R/I/A/S/E/C (RIASEC), O/C/E/A/N (NEO Big Five)
+const CAREERS = [
+  { id: 'ingenieria_software',   name: 'Ingeniería de Software',        area: 'Tecnología',   description: 'Desarrollo y diseño de sistemas informáticos y aplicaciones.',                        mbti:{EI:30,SN:45,TF:80,JP:65}, riasec:{R:15,I:85,A:25,S:15,E:35,C:70}, neo:{O:65,C:70,E:35,A:45,N:40}, future:95 },
+  { id: 'ciencias_datos',        name: 'Ciencia de Datos e IA',         area: 'Tecnología',   description: 'Análisis de datos masivos y desarrollo de modelos de inteligencia artificial.',      mbti:{EI:25,SN:40,TF:85,JP:60}, riasec:{R:10,I:92,A:20,S:15,E:30,C:75}, neo:{O:70,C:72,E:30,A:40,N:38}, future:98 },
+  { id: 'robotica',              name: 'Robótica e Ing. Electrónica',   area: 'Tecnología',   description: 'Diseño y programación de sistemas robóticos y electrónicos.',                        mbti:{EI:30,SN:50,TF:82,JP:62}, riasec:{R:70,I:80,A:20,S:15,E:35,C:65}, neo:{O:60,C:68,E:38,A:42,N:40}, future:92 },
+  { id: 'medicina',              name: 'Medicina',                      area: 'Salud',        description: 'Diagnóstico, tratamiento y prevención de enfermedades.',                            mbti:{EI:45,SN:65,TF:55,JP:80}, riasec:{R:35,I:78,A:15,S:70,E:35,C:60}, neo:{O:60,C:78,E:45,A:65,N:45}, future:85 },
+  { id: 'enfermeria',            name: 'Enfermería',                    area: 'Salud',        description: 'Cuidado y atención directa de pacientes en entornos sanitarios.',                   mbti:{EI:50,SN:65,TF:25,JP:70}, riasec:{R:35,I:60,A:15,S:85,E:30,C:60}, neo:{O:55,C:72,E:52,A:75,N:45}, future:83 },
+  { id: 'farmacia',              name: 'Farmacia',                      area: 'Salud',        description: 'Dispensación, desarrollo y control de medicamentos.',                               mbti:{EI:40,SN:68,TF:68,JP:72}, riasec:{R:25,I:75,A:15,S:45,E:30,C:72}, neo:{O:55,C:75,E:40,A:50,N:40}, future:76 },
+  { id: 'veterinaria',           name: 'Veterinaria',                   area: 'Salud Animal', description: 'Cuidado, diagnóstico y tratamiento de enfermedades en animales.',                   mbti:{EI:45,SN:60,TF:45,JP:65}, riasec:{R:55,I:70,A:20,S:65,E:30,C:58}, neo:{O:60,C:68,E:48,A:68,N:42}, future:68 },
+  { id: 'psicologia',            name: 'Psicología',                    area: 'Salud Mental', description: 'Estudio del comportamiento humano y tratamiento de trastornos mentales.',           mbti:{EI:40,SN:42,TF:25,JP:55}, riasec:{R:10,I:70,A:35,S:82,E:45,C:45}, neo:{O:68,C:58,E:50,A:72,N:48}, future:72 },
+  { id: 'derecho',               name: 'Derecho',                       area: 'Jurídico',     description: 'Asesoramiento legal, defensa de derechos y ejercicio de la abogacía.',            mbti:{EI:62,SN:58,TF:72,JP:72}, riasec:{R:12,I:55,A:22,S:45,E:78,C:65}, neo:{O:58,C:72,E:62,A:48,N:45}, future:68 },
+  { id: 'finanzas',              name: 'Finanzas y Economía',           area: 'Empresa',      description: 'Gestión de recursos económicos, inversión y análisis financiero.',                 mbti:{EI:42,SN:68,TF:82,JP:78}, riasec:{R:15,I:65,A:15,S:30,E:68,C:82}, neo:{O:52,C:78,E:55,A:42,N:40}, future:80 },
+  { id: 'administracion',        name: 'Administración de Empresas',    area: 'Empresa',      description: 'Gestión, planificación y dirección de organizaciones.',                            mbti:{EI:58,SN:62,TF:65,JP:75}, riasec:{R:15,I:45,A:25,S:42,E:78,C:70}, neo:{O:55,C:72,E:62,A:55,N:42}, future:73 },
+  { id: 'marketing',             name: 'Marketing y Publicidad',        area: 'Empresa',      description: 'Estrategias de comunicación, branding y promoción de marcas.',                    mbti:{EI:72,SN:38,TF:38,JP:42}, riasec:{R:12,I:40,A:70,S:55,E:82,C:45}, neo:{O:72,C:55,E:75,A:58,N:45}, future:75 },
+  { id: 'emprendimiento',        name: 'Emprendimiento e Innovación',   area: 'Empresa',      description: 'Creación y desarrollo de nuevas empresas y proyectos innovadores.',               mbti:{EI:62,SN:32,TF:50,JP:35}, riasec:{R:20,I:50,A:55,S:45,E:88,C:40}, neo:{O:78,C:50,E:75,A:52,N:48}, future:80 },
+  { id: 'educacion',             name: 'Educación y Pedagogía',         area: 'Educación',    description: 'Enseñanza y formación de personas en distintas etapas educativas.',               mbti:{EI:58,SN:48,TF:28,JP:65}, riasec:{R:15,I:50,A:40,S:88,E:45,C:52}, neo:{O:58,C:65,E:58,A:80,N:45}, future:60 },
+  { id: 'ingenieria_civil',      name: 'Ingeniería Civil',              area: 'Ingeniería',   description: 'Diseño y construcción de infraestructuras y obras públicas.',                     mbti:{EI:42,SN:68,TF:78,JP:72}, riasec:{R:80,I:60,A:20,S:20,E:35,C:65}, neo:{O:50,C:75,E:40,A:45,N:38}, future:72 },
+  { id: 'ingenieria_industrial', name: 'Ingeniería Industrial',         area: 'Ingeniería',   description: 'Optimización de procesos productivos y gestión de sistemas.',                     mbti:{EI:42,SN:68,TF:76,JP:72}, riasec:{R:70,I:65,A:15,S:20,E:40,C:65}, neo:{O:55,C:72,E:42,A:48,N:40}, future:78 },
+  { id: 'arquitectura',          name: 'Arquitectura',                  area: 'Diseño',       description: 'Diseño y planificación de edificios, espacios y entornos urbanos.',              mbti:{EI:38,SN:35,TF:52,JP:62}, riasec:{R:45,I:55,A:85,S:35,E:48,C:55}, neo:{O:80,C:60,E:48,A:55,N:45}, future:65 },
+  { id: 'diseño_grafico',        name: 'Diseño Gráfico y UX',           area: 'Diseño',       description: 'Creación de identidades visuales y experiencias de usuario digitales.',          mbti:{EI:38,SN:28,TF:38,JP:32}, riasec:{R:25,I:40,A:88,S:45,E:50,C:38}, neo:{O:82,C:50,E:52,A:58,N:48}, future:78 },
+  { id: 'bellas_artes',          name: 'Bellas Artes',                  area: 'Arte',         description: 'Expresión artística a través de pintura, escultura, instalaciones y medios mixtos.', mbti:{EI:30,SN:22,TF:22,JP:22}, riasec:{R:30,I:42,A:95,S:48,E:35,C:22}, neo:{O:88,C:42,E:45,A:58,N:52}, future:45 },
+  { id: 'comunicacion',          name: 'Periodismo y Comunicación',     area: 'Comunicación', description: 'Creación y difusión de contenidos informativos y periodísticos.',                mbti:{EI:72,SN:38,TF:35,JP:42}, riasec:{R:12,I:42,A:68,S:52,E:78,C:38}, neo:{O:72,C:52,E:72,A:55,N:45}, future:55 },
+  { id: 'biologia',              name: 'Biología e Investigación',      area: 'Ciencias',     description: 'Estudio de los seres vivos, sus procesos y ecosistemas.',                        mbti:{EI:28,SN:38,TF:65,JP:58}, riasec:{R:45,I:85,A:22,S:30,E:25,C:65}, neo:{O:75,C:65,E:35,A:48,N:42}, future:70 },
+  { id: 'fisica_matematicas',    name: 'Física y Matemáticas',          area: 'Ciencias',     description: 'Estudio de las leyes fundamentales del universo mediante modelos matemáticos.',  mbti:{EI:25,SN:30,TF:88,JP:55}, riasec:{R:20,I:90,A:20,S:18,E:22,C:72}, neo:{O:80,C:70,E:32,A:42,N:40}, future:75 },
+  { id: 'relaciones_int',        name: 'Relaciones Internacionales',    area: 'Social',       description: 'Diplomacia, política exterior y relaciones entre países y organismos.',          mbti:{EI:62,SN:42,TF:55,JP:65}, riasec:{R:10,I:60,A:40,S:60,E:72,C:48}, neo:{O:75,C:60,E:65,A:62,N:42}, future:65 },
+  { id: 'trabajo_social',        name: 'Trabajo Social',                area: 'Social',       description: 'Apoyo y acompañamiento a personas en situación de vulnerabilidad.',             mbti:{EI:58,SN:48,TF:15,JP:50}, riasec:{R:15,I:48,A:32,S:92,E:42,C:40}, neo:{O:62,C:58,E:58,A:82,N:48}, future:58 },
+  { id: 'historia_humanidades',  name: 'Historia y Humanidades',        area: 'Humanidades',  description: 'Estudio del pasado, la cultura y el pensamiento humano.',                       mbti:{EI:32,SN:32,TF:38,JP:48}, riasec:{R:12,I:68,A:65,S:48,E:32,C:42}, neo:{O:82,C:55,E:38,A:60,N:48}, future:42 },
+];
+
+const MBTI_INFO = {
+  INTJ: { label: 'El Arquitecto',    tagline: 'Estratégico, independiente y de alto rendimiento.' },
+  INTP: { label: 'El Lógico',        tagline: 'Analítico, curioso y apasionado por las ideas.' },
+  ENTJ: { label: 'El Comandante',    tagline: 'Líder nato, decidido y orientado a los objetivos.' },
+  ENTP: { label: 'El Innovador',     tagline: 'Creativo, debatidor y amante de los retos intelectuales.' },
+  INFJ: { label: 'El Consejero',     tagline: 'Visionario, empático y profundamente comprometido.' },
+  INFP: { label: 'El Mediador',      tagline: 'Idealista, creativo y guiado por sus valores.' },
+  ENFJ: { label: 'El Protagonista',  tagline: 'Carismático, inspirador y orientado a las personas.' },
+  ENFP: { label: 'El Activista',     tagline: 'Entusiasta, imaginativo y lleno de energía.' },
+  ISTJ: { label: 'El Inspector',     tagline: 'Fiable, metódico y comprometido con sus deberes.' },
+  ISFJ: { label: 'El Defensor',      tagline: 'Protector, detallista y dedicado a los demás.' },
+  ESTJ: { label: 'El Ejecutivo',     tagline: 'Organizado, decidido y excelente gestor.' },
+  ESFJ: { label: 'El Cónsul',        tagline: 'Sociable, atento y comprometido con la comunidad.' },
+  ISTP: { label: 'El Virtuoso',      tagline: 'Práctico, observador y hábil con las manos.' },
+  ISFP: { label: 'El Aventurero',    tagline: 'Artístico, espontáneo y en sintonía con el presente.' },
+  ESTP: { label: 'El Emprendedor',   tagline: 'Audaz, perceptivo y experto en la acción.' },
+  ESFP: { label: 'El Animador',      tagline: 'Espontáneo, entusiasta y con gran sentido de la vida.' },
+};
+
 const MAX_ATTEMPTS   = 5;
 const LOCKOUT_MINS   = 15;
 
@@ -106,6 +158,15 @@ export default {
           env.JWT_SECRET
         );
         return json({ ok: true, token });
+      }
+
+      // ── PUBLIC STATS ─────────────────────────────────────────────────────────
+
+      if (path === '/api/stats' && method === 'GET') {
+        const { results } = await env.DB.prepare(
+          `SELECT COUNT(*) as total FROM users WHERE active = 1`
+        ).all();
+        return json({ students: results[0]?.total ?? 0 });
       }
 
       // ── LICENSE REQUESTS ────────────────────────────────────────────────────
@@ -509,6 +570,279 @@ export default {
         return json({ name: payload.name, email: payload.email });
       }
 
+      // ── TEST: MBTI + RIASEC + Skills + Values ────────────────────────────────
+
+      if (path === '/api/test/mbti' && method === 'POST') {
+        const payload = await verifyRole(req, env, 'user');
+        if (!payload) return err('No autorizado', 401);
+
+        const body = await req.json();
+        const { answers, riasecScores, skillsScores, valuesProfile } = body;
+        if (!Array.isArray(answers) || answers.length < 10) return err('Faltan respuestas');
+        if (!env.GROQ_API_KEY) return err('Servicio de IA no configurado', 503);
+
+        const qa = answers.map((a, i) =>
+          `Pregunta ${i + 1}: ${a.question}\nRespuesta del alumno: ${a.answer}`
+        ).join('\n\n');
+
+        const hasPrecomputedRiasec = riasecScores &&
+          ['R','I','A','S','E','C'].every(k => typeof riasecScores[k] === 'number');
+
+        const hasValues = valuesProfile &&
+          ['autonomy','innovative','socialImpact','growth'].every(k => typeof valuesProfile[k] === 'number');
+
+        // Build context string from structured questionnaires for the AI
+        const structuredContext = hasPrecomputedRiasec
+          ? `\nPerfil RIASEC del cuestionario estructurado: R=${riasecScores.R} I=${riasecScores.I} A=${riasecScores.A} S=${riasecScores.S} E=${riasecScores.E} C=${riasecScores.C}`
+          : '';
+        const skillsContext = skillsScores
+          ? `\nHabilidades auto-evaluadas (0-100): lógica=${skillsScores.logic} verbal=${skillsScores.verbal} creatividad=${skillsScores.creative} digital=${skillsScores.digital} social=${skillsScores.social} planificación=${skillsScores.planning}`
+          : '';
+
+        const prompt = `Eres un experto en psicología vocacional. Analiza las siguientes respuestas de un estudiante para determinar su perfil MBTI y sus intereses vocacionales RIASEC.
+${structuredContext}${skillsContext}
+
+Respuestas del estudiante:
+${qa}
+
+Devuelve ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin bloques markdown) con este formato exacto:
+{
+  "MBTI": {
+    "EI": <entero 0-100, donde 0=totalmente introvertido, 100=totalmente extrovertido>,
+    "SN": <entero 0-100, donde 0=totalmente intuitivo/abstracto, 100=totalmente sensorial/concreto>,
+    "TF": <entero 0-100, donde 0=totalmente emocional/sentimental, 100=totalmente lógico/racional>,
+    "JP": <entero 0-100, donde 0=totalmente flexible/espontáneo, 100=totalmente organizado/planificador>
+  },
+  "RIASEC": {
+    "R": <0-100 realista: preferencia por trabajo físico, práctico o manual>,
+    "I": <0-100 investigativo: preferencia por análisis, ciencia o teoría>,
+    "A": <0-100 artístico: preferencia por creatividad, expresión o estética>,
+    "S": <0-100 social: preferencia por ayudar, enseñar o cuidar personas>,
+    "E": <0-100 emprendedor: preferencia por liderar, persuadir o gestionar>,
+    "C": <0-100 convencional: preferencia por datos, orden y procedimientos>
+  },
+  "analysis": "<2-3 frases en español describiendo el perfil vocacional del alumno>"
+}`;
+
+        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${env.GROQ_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.2,
+            max_tokens: 500,
+          }),
+        });
+
+        if (!groqRes.ok) {
+          const groqErr = await groqRes.text();
+          console.error('Groq error:', groqErr);
+          return err('Error al procesar las respuestas con IA', 502);
+        }
+
+        const groqData = await groqRes.json();
+        const rawContent = groqData.choices?.[0]?.message?.content || '';
+
+        let dims;
+        try {
+          const match = rawContent.match(/\{[\s\S]*\}/);
+          if (!match) throw new Error('No JSON');
+          dims = JSON.parse(match[0]);
+        } catch (e) {
+          console.error('Profile parse error:', rawContent);
+          return err('Error al interpretar la respuesta de IA', 500);
+        }
+
+        const clamp = (v, d = 50) => Math.min(100, Math.max(0, Math.round(Number(v) || d)));
+
+        // MBTI (acepta formato plano {EI,SN,...} o anidado {MBTI:{EI,...}})
+        const EI = clamp(dims.MBTI?.EI ?? dims.EI);
+        const SN = clamp(dims.MBTI?.SN ?? dims.SN);
+        const TF = clamp(dims.MBTI?.TF ?? dims.TF);
+        const JP = clamp(dims.MBTI?.JP ?? dims.JP);
+
+        // RIASEC: blend structured (65%) + AI inference from open answers (35%)
+        const blend = (structured, ai) => Math.round(0.65 * clamp(structured) + 0.35 * clamp(ai));
+        const RR = hasPrecomputedRiasec ? blend(riasecScores.R, dims.RIASEC?.R) : clamp(dims.RIASEC?.R);
+        const RI = hasPrecomputedRiasec ? blend(riasecScores.I, dims.RIASEC?.I) : clamp(dims.RIASEC?.I);
+        const RA = hasPrecomputedRiasec ? blend(riasecScores.A, dims.RIASEC?.A) : clamp(dims.RIASEC?.A);
+        const RS = hasPrecomputedRiasec ? blend(riasecScores.S, dims.RIASEC?.S) : clamp(dims.RIASEC?.S);
+        const RE = hasPrecomputedRiasec ? blend(riasecScores.E, dims.RIASEC?.E) : clamp(dims.RIASEC?.E);
+        const RC = hasPrecomputedRiasec ? blend(riasecScores.C, dims.RIASEC?.C) : clamp(dims.RIASEC?.C);
+
+        const mbtiType =
+          (EI >= 50 ? 'E' : 'I') +
+          (SN >= 50 ? 'S' : 'N') +
+          (TF >= 50 ? 'T' : 'F') +
+          (JP >= 50 ? 'J' : 'P');
+
+        // RIASEC code = top 3 letters sorted by score
+        const riasecCode = Object.entries({ R: RR, I: RI, A: RA, S: RS, E: RE, C: RC })
+          .sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k).join('');
+
+        const student = { EI, SN, TF, JP, R: RR, I: RI, A: RA, S: RS, E: RE, C: RC };
+
+        const scoredCareers = CAREERS.map(c => {
+          const d  = (a, b) => Math.pow(1 - Math.abs(a - b) / 100, 2);
+          const mbtiC = Math.pow(
+            d(student.EI, c.mbti.EI) * d(student.SN, c.mbti.SN) *
+            d(student.TF, c.mbti.TF) * d(student.JP, c.mbti.JP),
+            1 / 4
+          );
+          const riasecC = Math.pow(
+            d(student.R, c.riasec.R) * d(student.I, c.riasec.I) * d(student.A, c.riasec.A) *
+            d(student.S, c.riasec.S) * d(student.E, c.riasec.E) * d(student.C, c.riasec.C),
+            1 / 6
+          );
+
+          let compat;
+          if (hasValues) {
+            const valC = valuesCompat(c, valuesProfile);
+            // RIASEC 50% + MBTI 30% + Values 20%
+            compat = Math.pow(riasecC, 0.50) * Math.pow(mbtiC, 0.30) * Math.pow(valC, 0.20);
+          } else {
+            compat = Math.pow(riasecC, 0.60) * Math.pow(mbtiC, 0.40);
+          }
+
+          const compatScore = Math.round(compat * 100);
+          return { id: c.id, name: c.name, area: c.area, description: c.description,
+                   score: compatScore, compatScore, futureScore: c.future };
+        }).sort((a, b) => b.score - a.score).slice(0, 10);
+
+        const resultId = generateId('res_');
+        const analysis = typeof dims.analysis === 'string' ? dims.analysis.slice(0, 500) : '';
+
+        // NEO columns kept for DB compatibility; set to neutral (50)
+        await env.DB.prepare(
+          `INSERT INTO test_results
+           (id, user_id, mbti_type, ei_score, sn_score, tf_score, jp_score,
+            riasec_r, riasec_i, riasec_a, riasec_s, riasec_e, riasec_c, riasec_code,
+            neo_o, neo_c, neo_e, neo_a, neo_n,
+            analysis, careers_json, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+        ).bind(
+          resultId, payload.userId, mbtiType, EI, SN, TF, JP,
+          RR, RI, RA, RS, RE, RC, riasecCode,
+          50, 50, 50, 50, 50,
+          analysis, JSON.stringify(scoredCareers)
+        ).run();
+
+        const mbtiInfo = MBTI_INFO[mbtiType] || { label: mbtiType, tagline: '' };
+        return json({
+          ok: true, resultId, mbtiType,
+          mbtiLabel: mbtiInfo.label, mbtiTagline: mbtiInfo.tagline,
+          dimensions: { EI, SN, TF, JP },
+          riasec: { R: RR, I: RI, A: RA, S: RS, E: RE, C: RC, code: riasecCode },
+          analysis,
+          careers: scoredCareers,
+        });
+      }
+
+      if (path === '/api/test/results' && method === 'GET') {
+        const payload = await verifyRole(req, env, 'user');
+        if (!payload) return err('No autorizado', 401);
+        const { results } = await env.DB.prepare(
+          `SELECT id, mbti_type, ei_score, sn_score, tf_score, jp_score,
+           riasec_r, riasec_i, riasec_a, riasec_s, riasec_e, riasec_c, riasec_code,
+           neo_o, neo_c, neo_e, neo_a, neo_n,
+           analysis, careers_json, created_at
+           FROM test_results WHERE user_id = ? ORDER BY created_at DESC LIMIT 10`
+        ).bind(payload.userId).all();
+        return json({
+          results: results.map(r => ({ ...r, careers: JSON.parse(r.careers_json || '[]') })),
+        });
+      }
+
+      // ── DEGREES: 3-level lazy loading ────────────────────────────────────────────
+
+      if (path === '/api/degrees/categories' && method === 'GET') {
+        const sp = new URL(req.url).searchParams;
+        const s = extractStudentProfile(sp);
+
+        const { results: degreeTypes } = await env.DB.prepare(
+          `SELECT category_id,
+           mbti_ei, mbti_sn, mbti_tf, mbti_jp,
+           riasec_r, riasec_i, riasec_a, riasec_s, riasec_e, riasec_c,
+           neo_o, neo_c, neo_e, neo_a, neo_n, future_score
+           FROM degree_types`
+        ).all();
+
+        const catBest = {};
+        for (const dt of degreeTypes) {
+          const sc = rawCompat(s, dt);
+          if (catBest[dt.category_id] === undefined || sc > catBest[dt.category_id]) {
+            catBest[dt.category_id] = sc;
+          }
+        }
+
+        const { results: categories } = await env.DB.prepare(
+          'SELECT id, name, icon, display_order FROM degree_categories ORDER BY display_order'
+        ).all();
+
+        const withRaw = categories.map(c => ({ ...c, _raw: catBest[c.id] ?? 0 }));
+        const sorted = withRaw.sort((a, b) => b._raw - a._raw);
+        // Use absolute score — rawCompat is already 0-1, multiply by 100
+        return json({
+          categories: sorted.map(c => {
+            const { _raw, ...rest } = c;
+            return { ...rest, score: Math.round(_raw * 100) };
+          }),
+        });
+      }
+
+      if (path.startsWith('/api/degrees/category/') && method === 'GET') {
+        const categoryId = path.split('/')[4];
+        if (!categoryId) return err('ID de categoría requerido', 400);
+        const sp = new URL(req.url).searchParams;
+        const s = extractStudentProfile(sp);
+
+        const { results: degreeTypes } = await env.DB.prepare(
+          `SELECT id, name, campo, university_count, future_score,
+           mbti_ei, mbti_sn, mbti_tf, mbti_jp,
+           riasec_r, riasec_i, riasec_a, riasec_s, riasec_e, riasec_c,
+           neo_o, neo_c, neo_e, neo_a, neo_n
+           FROM degree_types WHERE category_id = ?`
+        ).bind(categoryId).all();
+
+        const raw = degreeTypes.map(dt => ({
+          id: dt.id, name: dt.name, campo: dt.campo,
+          universityCount: dt.university_count,
+          futureScore: dt.future_score ?? 50,
+          _compat: rawCompat(s, dt),
+        }));
+
+        raw.sort((a, b) => b._compat - a._compat);
+        // Use absolute score (compat is already 0-1) — no relative normalization
+        // so a degree that truly doesn't fit doesn't get an inflated score
+        const scored = raw.map(d => {
+          const { _compat, ...rest } = d;
+          const compatScore = Math.round(_compat * 100);
+          return { ...rest, compatScore, score: compatScore };
+        });
+
+        return json({ degrees: scored });
+      }
+
+      if (path.startsWith('/api/degrees/type/') && method === 'GET') {
+        const typeId = path.split('/')[4];
+        if (!typeId) return err('ID de grado requerido', 400);
+
+        const degreeType = await env.DB.prepare(
+          'SELECT id, name, campo, future_score FROM degree_types WHERE id = ?'
+        ).bind(typeId).first();
+        if (!degreeType) return err('Grado no encontrado', 404);
+
+        const { results: universities } = await env.DB.prepare(
+          'SELECT id, university, ministry_code FROM degrees WHERE degree_type_id = ? ORDER BY university'
+        ).bind(typeId).all();
+
+        return json({ ...degreeType, universities });
+      }
+
       return err('Ruta no encontrada', 404);
 
     } catch (e) {
@@ -517,6 +851,73 @@ export default {
     }
   },
 };
+
+// ── Values compatibility for career scoring ───────────────────────────────────
+// Maps career areas to ideal values profiles, then computes geometric-mean distance.
+
+const AREA_VALUES = {
+  'Tecnología':   { autonomy: 65, innovative: 80, socialImpact: 30, growth: 75 },
+  'Salud':        { autonomy: 40, innovative: 55, socialImpact: 85, growth: 65 },
+  'Salud Animal': { autonomy: 45, innovative: 50, socialImpact: 70, growth: 60 },
+  'Salud Mental': { autonomy: 50, innovative: 55, socialImpact: 80, growth: 65 },
+  'Jurídico':     { autonomy: 60, innovative: 40, socialImpact: 60, growth: 55 },
+  'Empresa':      { autonomy: 55, innovative: 55, socialImpact: 30, growth: 65 },
+  'Educación':    { autonomy: 50, innovative: 55, socialImpact: 90, growth: 60 },
+  'Ingeniería':   { autonomy: 45, innovative: 60, socialImpact: 40, growth: 65 },
+  'Diseño':       { autonomy: 70, innovative: 80, socialImpact: 45, growth: 65 },
+  'Arte':         { autonomy: 85, innovative: 90, socialImpact: 50, growth: 55 },
+  'Comunicación': { autonomy: 65, innovative: 65, socialImpact: 55, growth: 60 },
+  'Ciencias':     { autonomy: 55, innovative: 75, socialImpact: 45, growth: 70 },
+  'Social':       { autonomy: 55, innovative: 50, socialImpact: 85, growth: 60 },
+  'Humanidades':  { autonomy: 60, innovative: 65, socialImpact: 55, growth: 65 },
+};
+
+function valuesCompat(career, values) {
+  const ideal = AREA_VALUES[career.area] || { autonomy: 50, innovative: 50, socialImpact: 50, growth: 50 };
+  const sq = (a, b) => Math.pow(1 - Math.abs(a - b) / 100, 2);
+  return Math.pow(
+    sq(values.autonomy, ideal.autonomy) * sq(values.innovative, ideal.innovative) *
+    sq(values.socialImpact, ideal.socialImpact) * sq(values.growth, ideal.growth),
+    1 / 4
+  );
+}
+
+// ── Degree scoring helpers ────────────────────────────────────────────────────
+
+function extractStudentProfile(sp) {
+  const p = (k, d = 50) => Math.min(100, Math.max(0, parseInt(sp.get(k) ?? d, 10) || d));
+  return {
+    EI: p('ei'), SN: p('sn'), TF: p('tf'), JP: p('jp'),
+    R:  p('r'),  I:  p('i'),  A:  p('a'),  S:  p('s'),  E: p('e'), C: p('c'),
+    O:  p('o'),  NC: p('nc'), NE: p('ne'), NA: p('na'), NN: p('nn'),
+  };
+}
+
+// rawCompat: geometric mean within each model group, then weighted geometric between groups.
+// Geometric mean is scientifically correct for vocational matching: a strong mismatch on
+// any single dimension (e.g. student E=100, career E=10) cannot be compensated by other
+// dimensions. This creates natural spread (40-90%) instead of the arithmetic compression (79-87%).
+function rawCompat(s, dt) {
+  const sq = (a, b) => Math.pow(1 - Math.abs(a - b) / 100, 2);
+  // Geometric mean within each model (n-th root of product)
+  const mbtiC = Math.pow(
+    sq(s.EI, dt.mbti_ei) * sq(s.SN, dt.mbti_sn) *
+    sq(s.TF, dt.mbti_tf) * sq(s.JP, dt.mbti_jp),
+    1 / 4
+  );
+  const riasecC = Math.pow(
+    sq(s.R,  dt.riasec_r) * sq(s.I,  dt.riasec_i) * sq(s.A,  dt.riasec_a) *
+    sq(s.S,  dt.riasec_s) * sq(s.E,  dt.riasec_e) * sq(s.C,  dt.riasec_c),
+    1 / 6
+  );
+  const neoC = Math.pow(
+    sq(s.O,  dt.neo_o) * sq(s.NC, dt.neo_c) * sq(s.NE, dt.neo_e) *
+    sq(s.NA, dt.neo_a) * sq(s.NN, dt.neo_n),
+    1 / 5
+  );
+  // Weighted geometric mean between the three models
+  return Math.pow(riasecC, 0.35) * Math.pow(mbtiC, 0.35) * Math.pow(neoC, 0.30);
+}
 
 // ── Shared helper ─────────────────────────────────────────────────────────────
 
