@@ -196,6 +196,34 @@ export default function MbtiTest() {
         const payload = QUESTIONS.map((q, i) => ({ question: q.text, answer: answers[i] }));
         const result = await submitMbtiTest(payload, riasecScores, skillsScores, valuesProfile);
         sessionStorage.setItem('elentio_mbti_result', JSON.stringify(result));
+
+        // DEBUG: guardar snapshot completo en localStorage para análisis posterior (eliminar en producción)
+        try {
+          localStorage.setItem('elentio_debug_snapshot', JSON.stringify({
+            timestamp: new Date().toISOString(),
+            inputs: {
+              openAnswers: QUESTIONS.map((q, i) => ({
+                id: q.id, tag: q.tag, question: q.text, answer: answers[i],
+              })),
+              riasecRatings: RIASEC_ACTIVITIES.map(a => ({
+                id: a.id, type: a.type, text: a.text, rating: ratings[a.id] ?? null,
+              })),
+              skillRatings: SKILLS_ITEMS.map(s => ({
+                id: s.id, area: s.area, text: s.text, rating: skillRatings[s.id] ?? null,
+              })),
+              valuePicks: VALUES_PAIRS.map(p => ({
+                id: p.id, A: p.A, B: p.B, chosen: valuePicks[p.id] ?? null,
+              })),
+            },
+            computed: {
+              riasecScores,
+              skillsScores,
+              valuesProfile,
+            },
+            result,
+          }));
+        } catch (_) {}
+
         router.push('/test/mbti/resultado');
       } catch (e) {
         setError(e.message || 'Error al procesar el test. Inténtalo de nuevo.');
