@@ -651,7 +651,8 @@ Devuelve ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin bloques ma
 }`;
 
         // ── Two parallel AI calls → average for objectivity ──────────────────
-        const callAI = async () => {
+        // temperature 0.1: near-deterministic but avoids model looping at exactly 0
+        const groqCall = async (p, tokens = 1400) => {
           const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -660,26 +661,44 @@ Devuelve ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin bloques ma
             },
             body: JSON.stringify({
               model: 'llama-3.3-70b-versatile',
-              messages: [{ role: 'user', content: prompt }],
-              temperature: 0,   // deterministic decoding — eliminates stochastic variance
-              max_tokens: 1400,
+              messages: [{ role: 'user', content: p }],
+              temperature: 0.1,
+              max_tokens: tokens,
             }),
           });
-          if (!res.ok) throw new Error(`Groq HTTP ${res.status}`);
+          if (!res.ok) throw new Error(`Groq HTTP ${res.status}: ${await res.text()}`);
           const data = await res.json();
           const raw = data.choices?.[0]?.message?.content || '';
           const match = raw.match(/\{[\s\S]*\}/);
-          if (!match) throw new Error('No JSON in response');
+          if (!match) throw new Error('No JSON found in response');
           return { parsed: JSON.parse(match[0]), raw };
         };
 
-        const [call1, call2] = await Promise.allSettled([callAI(), callAI()]);
-        const valid1 = call1.status === 'fulfilled' ? call1.value : null;
-        const valid2 = call2.status === 'fulfilled' ? call2.value : null;
+        const [call1, call2] = await Promise.allSettled([groqCall(prompt), groqCall(prompt)]);
+        let valid1 = call1.status === 'fulfilled' ? call1.value : null;
+        let valid2 = call2.status === 'fulfilled' ? call2.value : null;
 
+        // Fallback: if both failed, retry once with a simpler prompt (plain numbers)
         if (!valid1 && !valid2) {
-          console.error('Both AI calls failed:', call1.reason?.message, call2.reason?.message);
-          return err('Error al procesar las respuestas con IA', 502);
+          console.error('Both AI calls failed, retrying with simplified prompt.',
+            call1.reason?.message, call2.reason?.message);
+          const simplifiedPrompt = `Eres un experto en psicología vocacional. Analiza las respuestas del estudiante y devuelve SOLO un JSON válido sin texto adicional:
+
+${qa}
+
+JSON requerido:
+{
+  "MBTI": { "EI": <0-100>, "SN": <0-100>, "TF": <0-100>, "JP": <0-100> },
+  "RIASEC": { "R": <0-100>, "I": <0-100>, "A": <0-100>, "S": <0-100>, "E": <0-100>, "C": <0-100> },
+  "analysis": "<2 frases sobre el perfil vocacional>",
+  "reasoning": { "EI":"", "SN":"", "TF":"", "JP":"", "R":"", "I":"", "A":"", "S":"", "E":"", "C":"" }
+}`;
+          try {
+            valid1 = await groqCall(simplifiedPrompt, 800);
+          } catch (retryErr) {
+            console.error('Retry also failed:', retryErr.message);
+            return err('Error al procesar las respuestas con IA', 502);
+          }
         }
 
         const d1 = valid1?.parsed;
@@ -802,7 +821,7 @@ Devuelve ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin bloques ma
           careers: scoredCareers,
           _debug: {
             model: 'llama-3.3-70b-versatile',
-            temperature: 0,
+            temperature: 0.1,
             max_tokens: 1400,
             callsSucceeded: (valid1 ? 1 : 0) + (valid2 ? 1 : 0),
             promptSent: prompt,
