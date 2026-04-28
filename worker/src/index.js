@@ -4,72 +4,35 @@ import {
 } from './crypto.js';
 import { sendLicenseApprovedEmail } from './email.js';
 
-// ── Career areas database ─────────────────────────────────────────────────────
-// 10 broad knowledge areas. Each profile is the RIASEC/MBTI centroid for the
-// cluster of Spanish university degrees in that field (O*NET calibrated).
-// EI: 0=Introvertido, 100=Extrovertido · SN: 0=Intuitivo, 100=Sensorial
-// TF: 0=Emocional, 100=Racional · JP: 0=Flexible, 100=Planificador
-// future: WEF net-employment-change score (piecewise-linear → 0-100 via normalizeWEF)
+// ── Career database ───────────────────────────────────────────────────────────
+// ideal: EI (0=I,100=E) · SN (0=N,100=S) · TF (0=F,100=T) · JP (0=P,100=J)
+// future: job market outlook 0-100
 const CAREERS = [
-  { id: 'tecnologia_innovacion', name: 'Tecnología e Innovación Digital',
-    area: 'Ingeniería',
-    description: 'Programación, inteligencia artificial, datos, ciberseguridad y telecomunicaciones. El sector con mayor crecimiento laboral de la próxima década.',
-    mbti:{EI:28,SN:42,TF:82,JP:58}, riasec:{R:45,I:92,A:35,S:12,E:30,C:68},
-    values:{autonomy:65,innovative:80,socialImpact:35,growth:65}, future:58 },
-
-  { id: 'economia_empresa', name: 'Economía, Empresa y Finanzas',
-    area: 'Economía y Administración de Empresas',
-    description: 'Dirección de empresas, economía, marketing, finanzas y comercio internacional. Formación para liderar organizaciones y tomar decisiones estratégicas.',
-    mbti:{EI:52,SN:55,TF:68,JP:65}, riasec:{R:15,I:65,A:25,S:40,E:82,C:72},
-    values:{autonomy:65,innovative:65,socialImpact:38,growth:62}, future:25 },
-
-  { id: 'derecho_juridicas', name: 'Derecho y Ciencias Jurídicas',
-    area: 'Derecho y Ciencias Jurídicas',
-    description: 'Derecho, relaciones internacionales, ciencias políticas y criminología. Para quienes quieren entender y transformar las normas que rigen la sociedad.',
-    mbti:{EI:45,SN:42,TF:55,JP:55}, riasec:{R:8,I:58,A:30,S:52,E:80,C:58},
-    values:{autonomy:62,innovative:52,socialImpact:65,growth:55}, future:14 },
-
-  { id: 'ciencias_salud', name: 'Ciencias de la Salud',
-    area: 'Ciencias de la Salud',
-    description: 'Medicina, enfermería, farmacia, fisioterapia y nutrición. Carreras orientadas al diagnóstico, cuidado y mejora de la salud humana.',
-    mbti:{EI:38,SN:58,TF:45,JP:62}, riasec:{R:45,I:70,A:15,S:82,E:22,C:55},
-    values:{autonomy:50,innovative:55,socialImpact:88,growth:55}, future:35 },
-
-  { id: 'psicologia_sociales', name: 'Psicología y Ciencias Sociales',
-    area: 'Ciencias Sociales',
-    description: 'Psicología, trabajo social, sociología, comunicación y periodismo. Para entender el comportamiento humano y transformar la sociedad.',
-    mbti:{EI:42,SN:35,TF:28,JP:45}, riasec:{R:12,I:60,A:38,S:78,E:42,C:38},
-    values:{autonomy:55,innovative:55,socialImpact:80,growth:50}, future:20 },
-
-  { id: 'ingenieria_industrial', name: 'Ingeniería Industrial y Tecnológica',
-    area: 'Ingeniería',
-    description: 'Ingeniería civil, mecánica, eléctrica, química, energías renovables y construcción. Diseñar y optimizar los sistemas del mundo físico.',
-    mbti:{EI:32,SN:68,TF:82,JP:68}, riasec:{R:82,I:78,A:18,S:10,E:30,C:60},
-    values:{autonomy:65,innovative:70,socialImpact:38,growth:58}, future:42 },
-
-  { id: 'arquitectura_diseno', name: 'Arquitectura y Diseño',
-    area: 'Arquitectura',
-    description: 'Arquitectura, diseño gráfico, diseño de interiores e industrial. La intersección entre la creatividad visual y la construcción del entorno.',
-    mbti:{EI:38,SN:42,TF:50,JP:60}, riasec:{R:60,I:50,A:72,S:18,E:38,C:55},
-    values:{autonomy:78,innovative:78,socialImpact:45,growth:55}, future:15 },
-
-  { id: 'artes_humanidades', name: 'Artes, Comunicación y Humanidades',
-    area: 'Artes y Humanidades',
-    description: 'Bellas artes, historia, filosofía, idiomas, periodismo y comunicación audiovisual. Para mentes creativas y pensadores críticos.',
-    mbti:{EI:35,SN:28,TF:28,JP:32}, riasec:{R:25,I:38,A:88,S:42,E:32,C:25},
-    values:{autonomy:72,innovative:72,socialImpact:52,growth:55}, future:6 },
-
-  { id: 'ciencias_puras', name: 'Ciencias Puras y Matemáticas',
-    area: 'Ciencias Puras y Matemáticas',
-    description: 'Matemáticas, física, química, biología y ciencias medioambientales. La base del conocimiento científico y de la investigación del mundo natural.',
-    mbti:{EI:28,SN:50,TF:82,JP:55}, riasec:{R:52,I:88,A:22,S:18,E:12,C:72},
-    values:{autonomy:62,innovative:70,socialImpact:30,growth:60}, future:32 },
-
-  { id: 'educacion', name: 'Educación y Magisterio',
-    area: 'Ciencias Sociales',
-    description: 'Magisterio, pedagogía, educación social y formación del profesorado. Transformar vidas a través de la enseñanza y el acompañamiento educativo.',
-    mbti:{EI:48,SN:35,TF:30,JP:48}, riasec:{R:15,I:48,A:42,S:88,E:35,C:35},
-    values:{autonomy:50,innovative:48,socialImpact:82,growth:48}, future:18 },
+  { id: 'ingenieria_software',   name: 'Ingeniería de Software',        area: 'Tecnología',   description: 'Desarrollo y diseño de sistemas informáticos y aplicaciones.',                        mbti:{EI:30,SN:45,TF:80,JP:65}, riasec:{R:44,I:84,A:23,S:14,E:15,C:77}, neo:{O:65,C:70,E:35,A:45,N:40}, values:{autonomy:65,innovative:80,socialImpact:35,growth:65}, future:95 },
+  { id: 'ciencias_datos',        name: 'Ciencia de Datos e IA',         area: 'Tecnología',   description: 'Análisis de datos masivos y desarrollo de modelos de inteligencia artificial.',      mbti:{EI:25,SN:40,TF:85,JP:60}, riasec:{R:19,I:100,A:27,S:11,E:12,C:73}, neo:{O:70,C:72,E:30,A:40,N:38}, values:{autonomy:62,innovative:80,socialImpact:35,growth:65}, future:98 },
+  { id: 'robotica',              name: 'Robótica e Ing. Electrónica',   area: 'Tecnología',   description: 'Diseño y programación de sistemas robóticos y electrónicos.',                        mbti:{EI:30,SN:50,TF:82,JP:62}, riasec:{R:86,I:77,A:13,S:8,E:13,C:58},  neo:{O:60,C:68,E:38,A:42,N:40}, values:{autonomy:65,innovative:78,socialImpact:38,growth:58}, future:92 },
+  { id: 'medicina',              name: 'Medicina',                      area: 'Salud',        description: 'Diagnóstico, tratamiento y prevención de enfermedades.',                            mbti:{EI:45,SN:65,TF:55,JP:80}, riasec:{R:52,I:91,A:8,S:86,E:20,C:46},  neo:{O:60,C:78,E:45,A:65,N:45}, values:{autonomy:50,innovative:55,socialImpact:88,growth:55}, future:85 },
+  { id: 'enfermeria',            name: 'Enfermería',                    area: 'Salud',        description: 'Cuidado y atención directa de pacientes en entornos sanitarios.',                   mbti:{EI:50,SN:65,TF:25,JP:70}, riasec:{R:41,I:62,A:6,S:76,E:23,C:62},  neo:{O:55,C:72,E:52,A:75,N:45}, values:{autonomy:45,innovative:48,socialImpact:90,growth:50}, future:83 },
+  { id: 'farmacia',              name: 'Farmacia',                      area: 'Salud',        description: 'Dispensación, desarrollo y control de medicamentos.',                               mbti:{EI:40,SN:68,TF:68,JP:72}, riasec:{R:30,I:78,A:8,S:65,E:27,C:59},  neo:{O:55,C:75,E:40,A:50,N:40}, values:{autonomy:50,innovative:58,socialImpact:80,growth:55}, future:76 },
+  { id: 'veterinaria',           name: 'Veterinaria',                   area: 'Salud Animal', description: 'Cuidado, diagnóstico y tratamiento de enfermedades en animales.',                   mbti:{EI:45,SN:60,TF:45,JP:65}, riasec:{R:83,I:83,A:0,S:41,E:12,C:41},  neo:{O:60,C:68,E:48,A:68,N:42}, values:{autonomy:55,innovative:58,socialImpact:78,growth:50}, future:68 },
+  { id: 'psicologia',            name: 'Psicología',                    area: 'Salud Mental', description: 'Estudio del comportamiento humano y tratamiento de trastornos mentales.',           mbti:{EI:40,SN:42,TF:25,JP:55}, riasec:{R:1,I:76,A:34,S:93,E:27,C:42},  neo:{O:68,C:58,E:50,A:72,N:48}, values:{autonomy:55,innovative:55,socialImpact:85,growth:50}, future:72 },
+  { id: 'derecho',               name: 'Derecho',                       area: 'Jurídico',     description: 'Asesoramiento legal, defensa de derechos y ejercicio de la abogacía.',            mbti:{EI:62,SN:58,TF:72,JP:72}, riasec:{R:2,I:56,A:23,S:41,E:75,C:60},  neo:{O:58,C:72,E:62,A:48,N:45}, values:{autonomy:62,innovative:52,socialImpact:65,growth:55}, future:68 },
+  { id: 'finanzas',              name: 'Finanzas y Economía',           area: 'Empresa',      description: 'Gestión de recursos económicos, inversión y análisis financiero.',                 mbti:{EI:42,SN:68,TF:82,JP:78}, riasec:{R:0,I:68,A:13,S:21,E:68,C:76},  neo:{O:52,C:78,E:55,A:42,N:40}, values:{autonomy:65,innovative:65,socialImpact:35,growth:65}, future:80 },
+  { id: 'administracion',        name: 'Administración de Empresas',    area: 'Empresa',      description: 'Gestión, planificación y dirección de organizaciones.',                            mbti:{EI:58,SN:62,TF:65,JP:75}, riasec:{R:20,I:23,A:5,S:40,E:100,C:72}, neo:{O:55,C:72,E:62,A:55,N:42}, values:{autonomy:65,innovative:62,socialImpact:38,growth:62}, future:73 },
+  { id: 'marketing',             name: 'Marketing y Publicidad',        area: 'Empresa',      description: 'Estrategias de comunicación, branding y promoción de marcas.',                    mbti:{EI:72,SN:38,TF:38,JP:42}, riasec:{R:0,I:32,A:24,S:30,E:100,C:62}, neo:{O:72,C:55,E:75,A:58,N:45}, values:{autonomy:65,innovative:72,socialImpact:42,growth:60}, future:75 },
+  { id: 'emprendimiento',        name: 'Emprendimiento e Innovación',   area: 'Empresa',      description: 'Creación y desarrollo de nuevas empresas y proyectos innovadores.',               mbti:{EI:62,SN:32,TF:50,JP:35}, riasec:{R:8,I:11,A:6,S:40,E:100,C:76},  neo:{O:78,C:50,E:75,A:52,N:48}, values:{autonomy:80,innovative:85,socialImpact:42,growth:68}, future:80 },
+  { id: 'educacion',             name: 'Educación y Pedagogía',         area: 'Educación',    description: 'Enseñanza y formación de personas en distintas etapas educativas.',               mbti:{EI:58,SN:48,TF:28,JP:65}, riasec:{R:28,I:38,A:47,S:100,E:29,C:45}, neo:{O:58,C:65,E:58,A:80,N:45}, values:{autonomy:50,innovative:48,socialImpact:85,growth:48}, future:60 },
+  { id: 'ingenieria_civil',      name: 'Ingeniería Civil',              area: 'Ingeniería',   description: 'Diseño y construcción de infraestructuras y obras públicas.',                     mbti:{EI:42,SN:68,TF:78,JP:72}, riasec:{R:90,I:69,A:20,S:12,E:28,C:60},  neo:{O:50,C:75,E:40,A:45,N:38}, values:{autonomy:65,innovative:68,socialImpact:48,growth:55}, future:72 },
+  { id: 'ingenieria_industrial', name: 'Ingeniería Industrial',         area: 'Ingeniería',   description: 'Optimización de procesos productivos y gestión de sistemas.',                     mbti:{EI:42,SN:68,TF:76,JP:72}, riasec:{R:66,I:66,A:10,S:6,E:38,C:72},  neo:{O:55,C:72,E:42,A:48,N:40}, values:{autonomy:65,innovative:72,socialImpact:38,growth:58}, future:78 },
+  { id: 'arquitectura',          name: 'Arquitectura',                  area: 'Diseño',       description: 'Diseño y planificación de edificios, espacios y entornos urbanos.',              mbti:{EI:38,SN:35,TF:52,JP:62}, riasec:{R:65,I:48,A:52,S:25,E:44,C:57},  neo:{O:80,C:60,E:48,A:55,N:45}, values:{autonomy:80,innovative:78,socialImpact:45,growth:55}, future:65 },
+  { id: 'diseño_grafico',        name: 'Diseño Gráfico y UX',           area: 'Diseño',       description: 'Creación de identidades visuales y experiencias de usuario digitales.',          mbti:{EI:38,SN:28,TF:38,JP:32}, riasec:{R:40,I:31,A:100,S:19,E:40,C:49}, neo:{O:82,C:50,E:52,A:58,N:48}, values:{autonomy:72,innovative:78,socialImpact:48,growth:62}, future:78 },
+  { id: 'bellas_artes',          name: 'Bellas Artes',                  area: 'Arte',         description: 'Expresión artística a través de pintura, escultura, instalaciones y medios mixtos.', mbti:{EI:30,SN:22,TF:22,JP:22}, riasec:{R:51,I:28,A:100,S:21,E:23,C:22}, neo:{O:88,C:42,E:45,A:58,N:52}, values:{autonomy:78,innovative:78,socialImpact:50,growth:60}, future:45 },
+  { id: 'comunicacion',          name: 'Periodismo y Comunicación',     area: 'Comunicación', description: 'Creación y difusión de contenidos informativos y periodísticos.',                mbti:{EI:72,SN:38,TF:35,JP:42}, riasec:{R:8,I:53,A:68,S:30,E:49,C:44},  neo:{O:72,C:52,E:72,A:55,N:45}, values:{autonomy:65,innovative:70,socialImpact:62,growth:58}, future:55 },
+  { id: 'biologia',              name: 'Biología e Investigación',      area: 'Ciencias',     description: 'Estudio de los seres vivos, sus procesos y ecosistemas.',                        mbti:{EI:28,SN:38,TF:65,JP:58}, riasec:{R:72,I:100,A:15,S:16,E:1,C:48},  neo:{O:75,C:65,E:35,A:48,N:42}, values:{autonomy:62,innovative:72,socialImpact:42,growth:60}, future:70 },
+  { id: 'fisica_matematicas',    name: 'Física y Matemáticas',          area: 'Ciencias',     description: 'Estudio de las leyes fundamentales del universo mediante modelos matemáticos.',  mbti:{EI:25,SN:30,TF:88,JP:55}, riasec:{R:52,I:100,A:33,S:18,E:8,C:65},  neo:{O:80,C:70,E:32,A:42,N:40}, values:{autonomy:62,innovative:72,socialImpact:30,growth:62}, future:75 },
+  { id: 'relaciones_int',        name: 'Relaciones Internacionales',    area: 'Social',       description: 'Diplomacia, política exterior y relaciones entre países y organismos.',          mbti:{EI:62,SN:42,TF:55,JP:65}, riasec:{R:0,I:95,A:48,S:40,E:44,C:42},  neo:{O:75,C:60,E:65,A:62,N:42}, values:{autonomy:62,innovative:65,socialImpact:72,growth:55}, future:65 },
+  { id: 'trabajo_social',        name: 'Trabajo Social',                area: 'Social',       description: 'Apoyo y acompañamiento a personas en situación de vulnerabilidad.',             mbti:{EI:58,SN:48,TF:15,JP:50}, riasec:{R:12,I:39,A:32,S:98,E:32,C:43},  neo:{O:62,C:58,E:58,A:82,N:48}, values:{autonomy:50,innovative:45,socialImpact:90,growth:45}, future:58 },
+  { id: 'historia_humanidades',  name: 'Historia y Humanidades',        area: 'Humanidades',  description: 'Estudio del pasado, la cultura y el pensamiento humano.',                       mbti:{EI:32,SN:32,TF:38,JP:48}, riasec:{R:23,I:72,A:45,S:37,E:22,C:64},  neo:{O:82,C:55,E:38,A:60,N:48}, values:{autonomy:62,innovative:62,socialImpact:58,growth:50}, future:42 },
 ];
 
 const MBTI_INFO = {
