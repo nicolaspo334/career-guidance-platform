@@ -18,8 +18,6 @@ function ElentioMark({ size = 32, dark = false }) {
   );
 }
 
-// 12 rays evenly spread 360° — converge from all directions to center
-const RAY_ANGLES = Array.from({ length: 12 }, (_, i) => i * 30);
 
 export default function StudentLogin() {
   const [email, setEmail]         = useState('');
@@ -49,11 +47,13 @@ export default function StudentLogin() {
   return (
     <>
       <style>{`
+        @keyframes dash { to { stroke-dashoffset: -400; } }
         @keyframes dotPulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(59,63,219,0.5); }
-          50%       { box-shadow: 0 0 0 8px rgba(59,63,219,0); }
+          0%   { box-shadow: 0 0 0 0   rgba(91,217,156,0.5); }
+          70%  { box-shadow: 0 0 0 8px rgba(91,217,156,0);   }
+          100% { box-shadow: 0 0 0 0   rgba(91,217,156,0);   }
         }
-        .pulse-dot { animation: dotPulse 2.5s ease-in-out infinite; }
+        .pulse-dot { animation: dotPulse 1.8s infinite; }
         @media (max-width: 959px) { .right-panel { display: none !important; } }
       `}</style>
 
@@ -248,56 +248,31 @@ export default function StudentLogin() {
             padding: 48,
           }}
         >
-          {/* Converging rays — SVG SMIL animations, no CSS dependency */}
-          <svg
-            viewBox="0 0 800 800"
-            preserveAspectRatio="xMidYMid slice"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            {/* Concentric dashed circles */}
-            {[60, 130, 220, 340, 480].map((r, i) => (
-              <circle key={r} cx={400} cy={400} r={r}
-                fill="none" stroke="#3B3FDB" strokeWidth="1"
-                strokeDasharray="4 10"
-              >
-                <animate
-                  attributeName="stroke-opacity"
-                  values="0.08;0.22;0.08"
-                  dur={`${4.5 + i * 0.5}s`}
-                  begin={`${-i * 1.1}s`}
-                  repeatCount="indefinite"
-                  calcMode="spline"
-                  keyTimes="0;0.5;1"
-                  keySplines="0.4 0 0.6 1;0.4 0 0.6 1"
-                />
-              </circle>
-            ))}
-
-            {/* 12 rays evenly spread 360°, converging to center */}
-            {RAY_ANGLES.map((angleDeg, i) => {
-              const rad = (angleDeg * Math.PI) / 180;
-              const x1 = 400 + Math.cos(rad) * 700;
-              const y1 = 400 + Math.sin(rad) * 700;
-              return (
-                <line key={i} x1={x1} y1={y1} x2={400} y2={400}
-                  stroke="#3B3FDB" strokeWidth="1"
-                  strokeDasharray="6 16"
-                >
-                  <animate
-                    attributeName="stroke-opacity"
-                    values="0.12;0.38;0.12"
-                    dur="4s"
-                    begin={`${-i * 0.33}s`}
-                    repeatCount="indefinite"
-                    calcMode="spline"
-                    keyTimes="0;0.5;1"
-                    keySplines="0.4 0 0.6 1;0.4 0 0.6 1"
+          {/* Decorative converging lines — exact pattern from Claude Design */}
+          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.14 }}>
+            <svg viewBox="0 0 800 1000" preserveAspectRatio="xMidYMid slice"
+              style={{ width: '100%', height: '100%' }}>
+              {/* 12 rays radiating from focal point (500,650) outward */}
+              {Array.from({ length: 12 }).map((_, i) => {
+                const angle = (i / 12) * Math.PI * 2;
+                const cx = 500, cy = 650;
+                const x2 = cx + Math.cos(angle) * 900;
+                const y2 = cy + Math.sin(angle) * 900;
+                return (
+                  <line key={i} x1={cx} y1={cy} x2={x2} y2={y2}
+                    stroke="#F5F2EA" strokeWidth="1" fill="none"
+                    strokeDasharray="4 6"
+                    style={{ animation: 'dash 40s linear infinite', animationDelay: `${i * -2}s` }}
                   />
-                </line>
-              );
-            })}
-          </svg>
+                );
+              })}
+              {/* Concentric circles at focal point */}
+              <circle cx="500" cy="650" r="80"  stroke="#F5F2EA" strokeOpacity="0.4"  fill="none" strokeWidth="0.8"/>
+              <circle cx="500" cy="650" r="160" stroke="#F5F2EA" strokeOpacity="0.3"  fill="none" strokeWidth="0.8"/>
+              <circle cx="500" cy="650" r="260" stroke="#F5F2EA" strokeOpacity="0.2"  fill="none" strokeWidth="0.8"/>
+              <circle cx="500" cy="650" r="380" stroke="#F5F2EA" strokeOpacity="0.12" fill="none" strokeWidth="0.8"/>
+            </svg>
+          </div>
 
           {/* Content */}
           <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: 360 }}>
