@@ -835,13 +835,19 @@ Sustituye los valores 50 por los valores reales según las respuestas. Solo JSON
             max_tokens: 1400,
             callsSucceeded: (valid1 ? 1 : 0) + (valid2 ? 1 : 0),
             promptSent: prompt,
+            rawAiResponse: valid1?.raw || valid2?.raw || null,
             call1: { raw: valid1?.raw || null, succeeded: !!valid1 },
             call2: { raw: valid2?.raw || null, succeeded: !!valid2 },
             averagedScores: { mbti: { EI, SN, TF, JP }, riasec: riasecAI },
             aiReasoning: dims.reasoning || null,
+            aiRawScores: {
+              mbti: { EI: dims.MBTI?.EI ?? dims.EI, SN: dims.MBTI?.SN ?? dims.SN,
+                      TF: dims.MBTI?.TF ?? dims.TF, JP: dims.MBTI?.JP ?? dims.JP },
+              riasec: Object.fromEntries(['R','I','A','S','E','C'].map(k => [k, riasecAI[k].score])),
+            },
             riasecPipeline: hasPrecomputedRiasec ? {
               structured: riasecScores,
-              aiScores: Object.fromEntries(['R','I','A','S','E','C'].map(k => [k, riasecAI[k].score])),
+              ai: Object.fromEntries(['R','I','A','S','E','C'].map(k => [k, riasecAI[k].score])),
               aiConfidence: Object.fromEntries(['R','I','A','S','E','C'].map(k => [k, riasecAI[k].confidence])),
               effectiveWeights: Object.fromEntries(['R','I','A','S','E','C'].map(k => [k, {
                 structured: Math.round((1 - 0.35 * riasecAI[k].confidence) * 100) / 100,
