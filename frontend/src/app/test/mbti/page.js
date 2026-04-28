@@ -34,13 +34,23 @@ const SKILLS_ITEMS = [
   { id: 'sk6', area: 'Planificación', text: '¿Con qué frecuencia planificas tus tareas con antelación y las llevas a cabo de forma ordenada?' },
 ];
 
-// ── Fase 4: valores laborales (4 pares de elección forzada) ──────────────────
+// ── Fase 4: valores laborales (8 pares, 2 por dimensión) ──────────────────────
+// 2 pares por dimensión → promedio → 3 niveles posibles (20 / 50 / 80)
+// vs. 1 par → solo 2 niveles (20 / 80). Mejora representatividad y reduce ruido.
 
 const VALUES_PAIRS = [
-  { id: 'v1', A: 'Autonomía para decidir cómo hago mi trabajo', B: 'Seguridad y estabilidad en mi empleo' },
-  { id: 'v2', A: 'Crear cosas nuevas e innovar constantemente', B: 'Aplicar métodos probados con rigor y precisión' },
-  { id: 'v3', A: 'Impacto social: mejorar la vida de personas o comunidades', B: 'Impacto económico: generar valor económico o riqueza' },
-  { id: 'v4', A: 'Reconocimiento público y visibilidad', B: 'Aprendizaje continuo y desarrollo personal' },
+  // Autonomía (v1 + v5)
+  { id: 'v1', dim: 'autonomy',     A: 'Autonomía para decidir cómo hago mi trabajo',                    B: 'Seguridad y estabilidad en mi empleo' },
+  { id: 'v5', dim: 'autonomy',     A: 'Definir yo mismo los objetivos y cómo alcanzarlos',              B: 'Tener objetivos claros marcados por la organización y centrarme en ejecutarlos bien' },
+  // Innovación (v2 + v6)
+  { id: 'v2', dim: 'innovative',   A: 'Crear cosas nuevas e innovar constantemente',                    B: 'Aplicar métodos probados con rigor y precisión' },
+  { id: 'v6', dim: 'innovative',   A: 'Explorar ideas sin saber si funcionarán, asumiendo el riesgo',   B: 'Optimizar lo que ya existe y obtener resultados predecibles' },
+  // Impacto social (v3 + v7)
+  { id: 'v3', dim: 'socialImpact', A: 'Impacto social: mejorar la vida de personas o comunidades',     B: 'Impacto económico: generar valor económico o riqueza' },
+  { id: 'v7', dim: 'socialImpact', A: 'Saber que lo que produzco ayuda directamente a personas reales', B: 'Generar resultados económicos medibles para mi empresa' },
+  // Crecimiento (v4 + v8)
+  { id: 'v4', dim: 'growth',       A: 'Reconocimiento público y visibilidad',                           B: 'Aprendizaje continuo y desarrollo personal' },
+  { id: 'v8', dim: 'growth',       A: 'Dominar una habilidad en profundidad, aunque sea poco visible',  B: 'Progresar en la jerarquía y tener más responsabilidad y reconocimiento' },
 ];
 
 // ── Fase 1: preguntas abiertas (MBTI + habilidades + valores) ─────────────────
@@ -86,11 +96,17 @@ function computeSkills(skillRatings) {
 }
 
 function computeValues(valuePicks) {
+  const pick = (id, aScore, bScore) => {
+    if (valuePicks[id] === 'A') return aScore;
+    if (valuePicks[id] === 'B') return bScore;
+    return 50;
+  };
+  const avg2 = (s1, s2) => Math.round((s1 + s2) / 2);
   return {
-    autonomy:     valuePicks.v1 === 'A' ? 80 : 20,
-    innovative:   valuePicks.v2 === 'A' ? 80 : 20,
-    socialImpact: valuePicks.v3 === 'A' ? 80 : 20,
-    growth:       valuePicks.v4 === 'B' ? 80 : 20,
+    autonomy:     avg2(pick('v1', 80, 20), pick('v5', 80, 20)),
+    innovative:   avg2(pick('v2', 80, 20), pick('v6', 80, 20)),
+    socialImpact: avg2(pick('v3', 80, 20), pick('v7', 80, 20)),
+    growth:       avg2(pick('v4', 20, 80), pick('v8', 80, 20)),
   };
 }
 

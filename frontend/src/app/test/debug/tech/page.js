@@ -380,31 +380,49 @@ export default function TechDebugPage() {
           subtitle="Cómo se transforman las elecciones forzadas en números para el algoritmo">
           <div style={{ paddingTop:16 }}>
             <p style={{ fontSize:13, color:'#6B6E87', marginBottom:14, lineHeight:1.6 }}>
-              Cada par forzado produce un valor binario: elegir A → 80, elegir B → 20.
+              Cada par forzado produce un valor binario: elegir A → 80, elegir B → 20 (o viceversa).
+              Cada dimensión tiene 2 pares; la puntuación final es la media de ambos.
               El umbral 80/20 (en vez de 100/0) está calibrado para que ninguna respuesta
               domine completamente la puntuación final.
             </p>
             {[
-              ['v1', 'autonomy', 'Autonomía', 'A=autonomía (80) / B=seguridad (20)'],
-              ['v2', 'innovative', 'Innovación', 'A=innovar (80) / B=método probado (20)'],
-              ['v3', 'socialImpact', 'Impacto social', 'A=impacto social (80) / B=impacto económico (20)'],
-              ['v4', 'growth', 'Crecimiento', 'A=reconocimiento (20) / B=aprendizaje (80)'],
-            ].map(([id, key, label, note]) => {
-              const pick = valuePicks?.find(p => p.id === id);
+              ['autonomy',     'Autonomía',      [
+                ['v1', 'A=autonomía (80) / B=seguridad (20)'],
+                ['v5', 'A=definir objetivos (80) / B=ejecutar objetivos dados (20)'],
+              ]],
+              ['innovative',   'Innovación',     [
+                ['v2', 'A=innovar (80) / B=método probado (20)'],
+                ['v6', 'A=explorar sin certeza (80) / B=optimizar lo existente (20)'],
+              ]],
+              ['socialImpact', 'Impacto social', [
+                ['v3', 'A=impacto social (80) / B=impacto económico (20)'],
+                ['v7', 'A=ayuda directa a personas (80) / B=resultados económicos (20)'],
+              ]],
+              ['growth',       'Crecimiento',    [
+                ['v4', 'A=reconocimiento (20) / B=aprendizaje (80)'],
+                ['v8', 'A=dominar habilidad (80) / B=ascender en jerarquía (20)'],
+              ]],
+            ].map(([key, label, pairs]) => {
               const val = computed.valuesProfile?.[key] ?? '—';
               return (
-                <div key={id} style={{ marginBottom:10, padding:'12px 14px', background:'#FAF8F3',
-                  borderRadius:10 }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+                <div key={key} style={{ marginBottom:12, padding:'12px 14px', background:'#FAF8F3', borderRadius:10 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
                     <strong style={{ fontSize:13, color:'#14152B' }}>{label}</strong>
-                    <span style={{ fontSize:13, fontWeight:700, color:'#ea580c' }}>{val}/100</span>
+                    <span style={{ fontSize:13, fontWeight:700, color:'#ea580c' }}>{val}/100 (media)</span>
                   </div>
-                  <p style={{ fontSize:12, color:'#8A8DA1', margin:'0 0 6px' }}>{note}</p>
-                  <p style={{ fontSize:12, color:'#5A5C72', margin:0 }}>
-                    Elegiste: <strong style={{ color:'#3B3FDB' }}>
-                      {pick?.chosen === 'A' ? pick.A : pick?.chosen === 'B' ? pick.B : '—'}
-                    </strong> → valor resultante: <Code>{val}</Code>
-                  </p>
+                  {pairs.map(([id, note]) => {
+                    const pick = valuePicks?.find(p => p.id === id);
+                    return (
+                      <div key={id} style={{ marginBottom:4 }}>
+                        <p style={{ fontSize:12, color:'#8A8DA1', margin:'0 0 2px' }}><strong>{id}:</strong> {note}</p>
+                        <p style={{ fontSize:12, color:'#5A5C72', margin:0 }}>
+                          Elegiste: <strong style={{ color:'#3B3FDB' }}>
+                            {pick?.chosen === 'A' ? pick.A : pick?.chosen === 'B' ? pick.B : '—'}
+                          </strong>
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
