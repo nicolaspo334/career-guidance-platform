@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { userLogin } from '@/lib/api';
@@ -49,25 +49,10 @@ export default function StudentLogin() {
   return (
     <>
       <style>{`
-        @keyframes rayPulse {
-          0%, 100% { opacity: 0.18; }
-          50%       { opacity: 0.38; }
-        }
-        @keyframes circlePulse {
-          0%, 100% { opacity: 0.10; }
-          50%       { opacity: 0.22; }
-        }
         @keyframes dotPulse {
           0%, 100% { box-shadow: 0 0 0 0 rgba(59,63,219,0.5); }
           50%       { box-shadow: 0 0 0 8px rgba(59,63,219,0); }
         }
-        .ray { animation: rayPulse 4s ease-in-out infinite; }
-        .ray:nth-child(2n)  { animation-delay: -1s; }
-        .ray:nth-child(3n)  { animation-delay: -2s; }
-        .ray:nth-child(4n)  { animation-delay: -3s; }
-        .circle-ring { animation: circlePulse 5s ease-in-out infinite; }
-        .circle-ring:nth-child(2) { animation-delay: -1.5s; }
-        .circle-ring:nth-child(3) { animation-delay: -3s; }
         .pulse-dot { animation: dotPulse 2.5s ease-in-out infinite; }
         @media (max-width: 959px) { .right-panel { display: none !important; } }
       `}</style>
@@ -263,45 +248,53 @@ export default function StudentLogin() {
             padding: 48,
           }}
         >
-          {/* Converging rays SVG — viewBox gives real pixel coords, no % bugs */}
+          {/* Converging rays — SVG SMIL animations, no CSS dependency */}
           <svg
             viewBox="0 0 800 800"
             preserveAspectRatio="xMidYMid slice"
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
             xmlns="http://www.w3.org/2000/svg"
           >
-            {/* Concentric dashed circles from center */}
+            {/* Concentric dashed circles */}
             {[60, 130, 220, 340, 480].map((r, i) => (
-              <circle
-                key={r}
-                className="circle-ring"
-                cx={400} cy={400} r={r}
-                fill="none"
-                stroke="#3B3FDB"
-                strokeWidth="0.8"
-                strokeOpacity="0.14"
+              <circle key={r} cx={400} cy={400} r={r}
+                fill="none" stroke="#3B3FDB" strokeWidth="1"
                 strokeDasharray="4 10"
-                style={{ animationDelay: `${-i * 1.1}s` }}
-              />
+              >
+                <animate
+                  attributeName="stroke-opacity"
+                  values="0.08;0.22;0.08"
+                  dur={`${4.5 + i * 0.5}s`}
+                  begin={`${-i * 1.1}s`}
+                  repeatCount="indefinite"
+                  calcMode="spline"
+                  keyTimes="0;0.5;1"
+                  keySplines="0.4 0 0.6 1;0.4 0 0.6 1"
+                />
+              </circle>
             ))}
 
-            {/* 12 rays evenly spread 360°, converging from edges to center */}
+            {/* 12 rays evenly spread 360°, converging to center */}
             {RAY_ANGLES.map((angleDeg, i) => {
               const rad = (angleDeg * Math.PI) / 180;
               const x1 = 400 + Math.cos(rad) * 700;
               const y1 = 400 + Math.sin(rad) * 700;
               return (
-                <line
-                  key={i}
-                  className="ray"
-                  x1={x1} y1={y1}
-                  x2={400} y2={400}
-                  stroke="#3B3FDB"
-                  strokeWidth="0.9"
-                  strokeOpacity="0.22"
+                <line key={i} x1={x1} y1={y1} x2={400} y2={400}
+                  stroke="#3B3FDB" strokeWidth="1"
                   strokeDasharray="6 16"
-                  style={{ animationDelay: `${-i * 0.33}s` }}
-                />
+                >
+                  <animate
+                    attributeName="stroke-opacity"
+                    values="0.12;0.38;0.12"
+                    dur="4s"
+                    begin={`${-i * 0.33}s`}
+                    repeatCount="indefinite"
+                    calcMode="spline"
+                    keyTimes="0;0.5;1"
+                    keySplines="0.4 0 0.6 1;0.4 0 0.6 1"
+                  />
+                </line>
               );
             })}
           </svg>
