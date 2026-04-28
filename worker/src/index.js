@@ -835,10 +835,8 @@ Sustituye los valores 50 por los valores reales según las respuestas. Solo JSON
             max_tokens: 1400,
             callsSucceeded: (valid1 ? 1 : 0) + (valid2 ? 1 : 0),
             promptSent: prompt,
-            call1: { raw: valid1?.raw || null, parsed: valid1?.parsed || null,
-                     error: call1.status === 'rejected' ? call1.reason?.message : null },
-            call2: { raw: valid2?.raw || null, parsed: valid2?.parsed || null,
-                     error: call2.status === 'rejected' ? call2.reason?.message : null },
+            call1: { raw: valid1?.raw || null, succeeded: !!valid1 },
+            call2: { raw: valid2?.raw || null, succeeded: !!valid2 },
             averagedScores: { mbti: { EI, SN, TF, JP }, riasec: riasecAI },
             aiReasoning: dims.reasoning || null,
             riasecPipeline: hasPrecomputedRiasec ? {
