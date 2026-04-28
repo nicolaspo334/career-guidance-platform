@@ -650,54 +650,64 @@ Devuelve ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin bloques ma
   }
 }`;
 
-        // ── Two parallel AI calls → average for objectivity ──────────────────
-        // temperature 0.1: near-deterministic but avoids model looping at exactly 0
-        const groqCall = async (p, tokens = 1400) => {
-          const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${env.GROQ_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'llama-3.3-70b-versatile',
-              messages: [{ role: 'user', content: p }],
-              temperature: 0.1,
-              max_tokens: tokens,
-            }),
-          });
-          if (!res.ok) throw new Error(`Groq HTTP ${res.status}: ${await res.text()}`);
-          const data = await res.json();
-          const raw = data.choices?.[0]?.message?.content || '';
-          const match = raw.match(/\{[\s\S]*\}/);
-          if (!match) throw new Error('No JSON found in response');
-          return { parsed: JSON.parse(match[0]), raw };
+        // ── AI call helper with timeout ───────────────────────────────────────
+        const groqCall = async (p, tokens = 1200) => {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 25000); // 25s timeout
+          try {
+            const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+              method: 'POST',
+              signal: controller.signal,
+              headers: {
+                'Authorization': `Bearer ${env.GROQ_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'llama-3.3-70b-versatile',
+                messages: [{ role: 'user', content: p }],
+                temperature: 0.1,
+                max_tokens: tokens,
+              }),
+            });
+            if (!res.ok) {
+              const errBody = await res.text();
+              throw new Error(`Groq ${res.status}: ${errBody}`);
+            }
+            const data = await res.json();
+            const raw = data.choices?.[0]?.message?.content || '';
+            // Extract the outermost JSON object robustly
+            const start = raw.indexOf('{');
+            const end   = raw.lastIndexOf('}');
+            if (start === -1 || end === -1) throw new Error(`No JSON object in: ${raw.slice(0, 200)}`);
+            const parsed = JSON.parse(raw.slice(start, end + 1));
+            return { parsed, raw };
+          } finally {
+            clearTimeout(timer);
+          }
         };
 
-        const [call1, call2] = await Promise.allSettled([groqCall(prompt), groqCall(prompt)]);
-        let valid1 = call1.status === 'fulfilled' ? call1.value : null;
-        let valid2 = call2.status === 'fulfilled' ? call2.value : null;
+        // Primary: two sequential calls (avoids Groq rate-limit on simultaneous requests)
+        // then average the scores for objectivity
+        let valid1 = null, valid2 = null;
+        try { valid1 = await groqCall(prompt); } catch (e) { console.error('Call 1 failed:', e.message); }
+        try { valid2 = await groqCall(prompt); } catch (e) { console.error('Call 2 failed:', e.message); }
 
-        // Fallback: if both failed, retry once with a simpler prompt (plain numbers)
+        // Fallback: if both failed, retry with a minimal plain-number prompt
         if (!valid1 && !valid2) {
-          console.error('Both AI calls failed, retrying with simplified prompt.',
-            call1.reason?.message, call2.reason?.message);
-          const simplifiedPrompt = `Eres un experto en psicología vocacional. Analiza las respuestas del estudiante y devuelve SOLO un JSON válido sin texto adicional:
+          console.error('Both AI calls failed. Trying minimal fallback prompt.');
+          const fallbackPrompt = `Eres un orientador vocacional. Analiza estas respuestas y devuelve ÚNICAMENTE el JSON, sin ningún texto adicional ni markdown.
 
 ${qa}
 
-JSON requerido:
-{
-  "MBTI": { "EI": <0-100>, "SN": <0-100>, "TF": <0-100>, "JP": <0-100> },
-  "RIASEC": { "R": <0-100>, "I": <0-100>, "A": <0-100>, "S": <0-100>, "E": <0-100>, "C": <0-100> },
-  "analysis": "<2 frases sobre el perfil vocacional>",
-  "reasoning": { "EI":"", "SN":"", "TF":"", "JP":"", "R":"", "I":"", "A":"", "S":"", "E":"", "C":"" }
-}`;
+JSON exacto a devolver:
+{"MBTI":{"EI":50,"SN":50,"TF":50,"JP":50},"RIASEC":{"R":50,"I":50,"A":50,"S":50,"E":50,"C":50},"analysis":"Perfil en proceso de análisis.","reasoning":{"EI":"","SN":"","TF":"","JP":"","R":"","I":"","A":"","S":"","E":"","C":""}}
+
+Sustituye los valores 50 por los valores reales según las respuestas. Solo JSON, sin texto extra.`;
           try {
-            valid1 = await groqCall(simplifiedPrompt, 800);
+            valid1 = await groqCall(fallbackPrompt, 600);
           } catch (retryErr) {
-            console.error('Retry also failed:', retryErr.message);
-            return err('Error al procesar las respuestas con IA', 502);
+            console.error('Fallback also failed:', retryErr.message);
+            return err('Error al procesar las respuestas con IA. Inténtalo de nuevo.', 502);
           }
         }
 
