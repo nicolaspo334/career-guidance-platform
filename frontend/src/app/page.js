@@ -176,7 +176,7 @@ function LandingNavbar() {
           </nav>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Link href="/login" className="btn-g landing-nav-desktop" style={{ textDecoration: 'none' }}>
+            <Link href="/student" className="btn-g landing-nav-desktop" style={{ textDecoration: 'none' }}>
               Iniciar sesión
             </Link>
             <Link href="/licencias" className="btn-g landing-nav-desktop" style={{ textDecoration: 'none' }}>
@@ -230,7 +230,7 @@ function LandingNavbar() {
         <a href="#" className="mobile-menu-nav-link" onClick={() => setMobileOpen(false)}>Precios</a>
         <a href="#" className="mobile-menu-nav-link" onClick={() => setMobileOpen(false)}>Recursos</a>
         <div className="mobile-menu-actions">
-          <Link href="/login" className="btn-g lg" style={{ textDecoration: 'none' }} onClick={() => setMobileOpen(false)}>
+          <Link href="/student" className="btn-g lg" style={{ textDecoration: 'none' }} onClick={() => setMobileOpen(false)}>
             Iniciar sesión
           </Link>
           <Link href="/licencias" className="btn-g lg" style={{ textDecoration: 'none' }} onClick={() => setMobileOpen(false)}>
