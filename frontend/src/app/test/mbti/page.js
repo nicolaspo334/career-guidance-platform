@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { isUserLoggedIn, submitMbtiTest } from '@/lib/api';
@@ -110,6 +110,376 @@ function computeValues(valuePicks) {
   };
 }
 
+// ── Loading screen constants ──────────────────────────────────────────────────
+
+const LOADING_STEPS = [
+  { t: 'Recopilando tus respuestas',                    dur: 1200 },
+  { t: 'Analizando rasgos psicométricos',               dur: 2200 },
+  { t: 'Cruzando con 115 grados universitarios',        dur: 2700 },
+  { t: 'Calculando el futuro laboral de cada carrera',  dur: 2000 },
+  { t: 'Redactando tu informe personalizado',           dur: 1900 },
+]; // total: 10000 ms
+
+const LOADING_TIPS = [
+  'No hay carreras "buenas" o "malas". Hay carreras que encajan contigo.',
+  'El 38% de los alumnos cambia de opinión tras ver su informe completo.',
+  'Tu carrera ideal puede ser una que aún no habías considerado.',
+  'Los datos laborales se actualizan con fuentes del WEF y O*NET.',
+];
+
+const CHIP_POOL = [
+  { t: 'Curiosidad: alta',       c: '#3B3FDB' },
+  { t: 'Pensamiento abstracto',  c: '#8B63E8' },
+  { t: 'Matemáticas',            c: '#D9A647' },
+  { t: 'Trabajo en equipo',      c: '#2D8F5A' },
+  { t: 'Liderazgo: medio',       c: '#3B3FDB' },
+  { t: 'Creatividad',            c: '#D9A647' },
+  { t: 'Análisis de datos',      c: '#8B63E8' },
+  { t: 'Empatía: alta',          c: '#2D8F5A' },
+  { t: 'Atención al detalle',    c: '#3B3FDB' },
+  { t: 'RIASEC: I-A-S',          c: '#D9A647' },
+  { t: 'Apertura: 88',           c: '#3B3FDB' },
+];
+
+// ── Loading canvas (SVG visualization) ───────────────────────────────────────
+
+function LoadingCanvas({ progress }) {
+  const circ = 2 * Math.PI * 188;
+  return (
+    <svg viewBox="0 0 400 400" style={{ width: '100%', height: '100%', display: 'block' }}>
+      <defs>
+        <radialGradient id="lcCoreGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stopColor="#3B3FDB" stopOpacity="0.9"/>
+          <stop offset="60%"  stopColor="#3B3FDB" stopOpacity="0.4"/>
+          <stop offset="100%" stopColor="#3B3FDB" stopOpacity="0"/>
+        </radialGradient>
+        <linearGradient id="lcRingGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stopColor="#3B3FDB"/>
+          <stop offset="100%" stopColor="#8B63E8"/>
+        </linearGradient>
+        <filter id="lcGlow">
+          <feGaussianBlur stdDeviation="3" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      {/* Outer halo */}
+      <circle cx="200" cy="200" r="170" fill="url(#lcCoreGrad)" opacity="0.08">
+        <animate attributeName="r" values="170;180;170" dur="3s" repeatCount="indefinite"/>
+      </circle>
+
+      {/* Ring 1 – slow outer */}
+      <g style={{ transformOrigin: '200px 200px', animation: 'lcSpin 18s linear infinite' }}>
+        <ellipse cx="200" cy="200" rx="155" ry="155" stroke="rgba(20,21,43,0.1)" strokeWidth="1" fill="none" strokeDasharray="2 6"/>
+        <ellipse cx="200" cy="200" rx="155" ry="155" stroke="url(#lcRingGrad)" strokeWidth="2" fill="none"
+          strokeDasharray="40 600" strokeLinecap="round" filter="url(#lcGlow)"/>
+      </g>
+
+      {/* Ring 2 – mid reverse */}
+      <g style={{ transformOrigin: '200px 200px', animation: 'lcSpin 12s linear infinite reverse' }}>
+        <ellipse cx="200" cy="200" rx="120" ry="120" stroke="rgba(20,21,43,0.08)" strokeWidth="1" fill="none"/>
+        <ellipse cx="200" cy="200" rx="120" ry="120" stroke="#D9A647" strokeWidth="2" fill="none"
+          strokeDasharray="30 460" strokeLinecap="round" opacity="0.85"/>
+      </g>
+
+      {/* Ring 3 – fast inner */}
+      <g style={{ transformOrigin: '200px 200px', animation: 'lcSpin 8s linear infinite' }}>
+        <ellipse cx="200" cy="200" rx="85" ry="85" stroke="rgba(20,21,43,0.08)" strokeWidth="1" fill="none"/>
+        <ellipse cx="200" cy="200" rx="85" ry="85" stroke="#8B63E8" strokeWidth="2" fill="none"
+          strokeDasharray="22 320" strokeLinecap="round"/>
+      </g>
+
+      {/* Spokes */}
+      <g style={{ transformOrigin: '200px 200px', animation: 'lcSpin 28s linear infinite' }}>
+        {Array.from({ length: 6 }).map((_, i) => {
+          const a = (i / 6) * Math.PI * 2;
+          return (
+            <line key={i} x1="200" y1="200"
+              x2={200 + Math.cos(a) * 75} y2={200 + Math.sin(a) * 75}
+              stroke="rgba(20,21,43,0.18)" strokeWidth="1" strokeDasharray="3 4"/>
+          );
+        })}
+      </g>
+
+      {/* Inner white circle */}
+      <circle cx="200" cy="200" r="40" fill="#FAF8F3" stroke="#3B3FDB" strokeWidth="1.5"
+        style={{ transformOrigin: '200px 200px', animation: 'lcScale 2.4s ease-in-out infinite' }}/>
+
+      {/* Elentio mark (scaled) */}
+      <g transform="translate(168 168)" style={{ transformOrigin: '200px 200px', animation: 'lcScale 2.4s ease-in-out infinite' }}>
+        <circle cx="32" cy="32" r="28" stroke="#3B3FDB" strokeOpacity="0.25" strokeWidth="1" fill="none"/>
+        <path d="M32 8 L32 32" stroke="#14152B" strokeWidth="2" strokeLinecap="round"/>
+        <path d="M9 47 L32 32" stroke="#14152B" strokeWidth="2" strokeLinecap="round"/>
+        <path d="M55 47 L32 32" stroke="#14152B" strokeWidth="2" strokeLinecap="round"/>
+        <circle cx="32" cy="32" r="5" fill="#3B3FDB"/>
+        <circle cx="32" cy="32" r="9" stroke="#3B3FDB" strokeOpacity="0.4" strokeWidth="1.2" fill="none"/>
+      </g>
+
+      {/* Background arc track */}
+      <circle cx="200" cy="200" r="188" fill="none" stroke="rgba(20,21,43,0.06)" strokeWidth="2"/>
+
+      {/* Progress arc */}
+      <circle cx="200" cy="200" r="188"
+        fill="none" stroke="#3B3FDB" strokeWidth="2.5"
+        strokeDasharray={`${(progress / 100) * circ} ${circ}`}
+        strokeLinecap="round"
+        transform="rotate(-90 200 200)"
+        style={{ transition: 'stroke-dasharray 0.4s ease' }}/>
+    </svg>
+  );
+}
+
+// ── Loading screen component ──────────────────────────────────────────────────
+
+function LoadingScreen({ apiDone, onNavigate }) {
+  const DURATION = 10000;
+  const [progress, setProgress]   = useState(0);
+  const [stepIdx, setStepIdx]     = useState(0);
+  const [timerDone, setTimerDone] = useState(false);
+  const [chips, setChips]         = useState([]);
+  const [tipIdx, setTipIdx]       = useState(0);
+  const chipIdRef                 = useRef(0);
+  const navigatedRef              = useRef(false);
+
+  // 10-second progress timer
+  useEffect(() => {
+    const start = performance.now();
+    let raf;
+    const tick = () => {
+      const elapsed = performance.now() - start;
+      const pct = Math.min(100, (elapsed / DURATION) * 100);
+      setProgress(pct);
+      let acc = 0, idx = LOADING_STEPS.length - 1;
+      for (let i = 0; i < LOADING_STEPS.length; i++) {
+        acc += LOADING_STEPS[i].dur;
+        if (elapsed < acc) { idx = i; break; }
+      }
+      setStepIdx(idx);
+      if (elapsed < DURATION) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        setTimerDone(true);
+      }
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  // Navigate when both timer and API are done
+  useEffect(() => {
+    if (timerDone && apiDone && !navigatedRef.current) {
+      navigatedRef.current = true;
+      onNavigate();
+    }
+  }, [timerDone, apiDone, onNavigate]);
+
+  // Spawn floating data chips
+  useEffect(() => {
+    const spawn = () => {
+      const pool = CHIP_POOL[Math.floor(Math.random() * CHIP_POOL.length)];
+      const angle = Math.random() * Math.PI * 2;
+      const r = 32 + Math.random() * 14;
+      const x = 50 + Math.cos(angle) * r;
+      const y = 50 + Math.sin(angle) * r;
+      const id = chipIdRef.current++;
+      setChips(cs => [...cs, { id, ...pool, x, y }]);
+      setTimeout(() => {
+        setChips(cs => cs.map(c => c.id === id ? { ...c, leaving: true } : c));
+        setTimeout(() => setChips(cs => cs.filter(c => c.id !== id)), 500);
+      }, 2400);
+    };
+    spawn(); spawn(); spawn();
+    const iv = setInterval(spawn, 650);
+    return () => clearInterval(iv);
+  }, []);
+
+  // Rotate tips every 4.5s
+  useEffect(() => {
+    const iv = setInterval(() => setTipIdx(i => (i + 1) % LOADING_TIPS.length), 4500);
+    return () => clearInterval(iv);
+  }, []);
+
+  const remSec = Math.max(0, Math.ceil((DURATION - DURATION * progress / 100) / 1000));
+
+  return (
+    <>
+      <style>{`
+        @keyframes lcSpin  { to { transform: rotate(360deg); } }
+        @keyframes lcScale { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+        @keyframes lcPulse { 0%,100% { opacity:.4; transform:scale(1); } 50% { opacity:1; transform:scale(1.25); } }
+        @keyframes lcBullet { 0%,100% { transform:scale(0.5); opacity:.5; } 50% { transform:scale(1); opacity:1; } }
+        @keyframes lcChipIn  { from { opacity:0; transform:translate(-50%,-50%) scale(0.6); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
+        @keyframes lcChipOut { to   { opacity:0; transform:translate(-50%,-50%) scale(0.7); } }
+      `}</style>
+
+      <div style={{
+        minHeight: '100vh', display: 'grid',
+        gridTemplateRows: 'auto 1fr auto',
+        background: '#FAF8F3',
+        fontFamily: 'var(--font-inter), system-ui, sans-serif',
+      }}>
+        {/* Topbar */}
+        <header style={{ padding: '22px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <ElentioMark size={24}/>
+            <span style={{ fontFamily: 'var(--font-instrument-serif), Georgia, serif', fontSize: 22, color: '#14152B', letterSpacing: '-0.015em', fontWeight: 400 }}>
+              elentio
+            </span>
+          </div>
+          <div style={{ fontSize: 12, color: '#5A5C72', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ width: 7, height: 7, borderRadius: 999, background: '#3B3FDB', display: 'inline-block', animation: 'lcPulse 1.4s infinite' }}/>
+            <span style={{ letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: 11 }}>Procesando</span>
+          </div>
+        </header>
+
+        {/* Main two-column layout */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80,
+          padding: '20px 40px 40px', alignItems: 'center',
+          maxWidth: 1240, margin: '0 auto', width: '100%',
+        }}>
+          {/* Left: title + steps */}
+          <div style={{ maxWidth: 520 }}>
+            <p style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#5A5C72', fontWeight: 500, margin: 0 }}>
+              Casi listo
+            </p>
+            <h1 style={{
+              fontFamily: 'var(--font-instrument-serif), Georgia, serif',
+              fontSize: 'clamp(40px, 4.6vw, 60px)', lineHeight: 1.04,
+              letterSpacing: '-0.022em', fontWeight: 400, margin: '14px 0 0',
+              color: '#14152B',
+            }}>
+              Estamos preparando<br/>
+              <em style={{ fontStyle: 'italic', color: '#3B3FDB' }}>tu informe.</em>
+            </h1>
+            <p style={{ color: '#5A5C72', fontSize: 15, lineHeight: 1.55, marginTop: 18, maxWidth: 420 }}>
+              Cruzando tus respuestas con tres modelos psicométricos y la demanda laboral
+              de 115 grados universitarios. No tardamos mucho.
+            </p>
+
+            {/* Steps */}
+            <div style={{ marginTop: 40, display: 'grid', gap: 4 }}>
+              {LOADING_STEPS.map((s, i) => {
+                const state = i < stepIdx ? 'done' : i === stepIdx ? 'active' : 'idle';
+                return (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 14,
+                    padding: '14px 12px', borderRadius: 10,
+                    background: state === 'active' ? 'rgba(59,63,219,0.06)' : 'transparent',
+                    opacity: state === 'idle' ? 0.42 : 0.85,
+                    transition: 'background 0.3s, opacity 0.3s',
+                  }}>
+                    {/* Bullet */}
+                    <div style={{
+                      width: 22, height: 22, borderRadius: 999, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      position: 'relative',
+                      background: state === 'done' ? '#2D8F5A' : 'transparent',
+                      border: state === 'done' ? '1.5px solid #2D8F5A'
+                            : state === 'active' ? '1.5px solid #3B3FDB'
+                            : '1.5px solid rgba(20,21,43,0.2)',
+                      transition: 'background 0.3s, border 0.3s',
+                    }}>
+                      {state === 'done' && (
+                        <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                          <path d="M2.5 6L5 8.5L9.5 4" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                      {state === 'active' && (
+                        <span style={{
+                          position: 'absolute', inset: 3, borderRadius: 999,
+                          background: '#3B3FDB',
+                          animation: 'lcBullet 1s ease-in-out infinite',
+                        }}/>
+                      )}
+                    </div>
+                    <span style={{ fontSize: 14, color: '#14152B', fontWeight: 500, flex: 1 }}>{s.t}</span>
+                    <span style={{ fontSize: 11, color: '#8A8DA1', fontFamily: 'monospace' }}>
+                      {state === 'done' ? '✓' : state === 'active' ? 'en curso' : ''}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right: animated canvas */}
+          <div style={{ position: 'relative', aspectRatio: '1/1', maxWidth: 520, width: '100%', margin: '0 auto' }}>
+            <LoadingCanvas progress={progress}/>
+            {chips.map(c => (
+              <div key={c.id} style={{
+                position: 'absolute',
+                left: `${c.x}%`, top: `${c.y}%`,
+                transform: 'translate(-50%,-50%)',
+                padding: '6px 12px',
+                background: '#fff',
+                border: '1px solid rgba(20,21,43,0.08)',
+                borderRadius: 999,
+                fontSize: 12, color: '#14152B',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 8px 24px -8px rgba(20,21,43,0.18)',
+                display: 'flex', alignItems: 'center', gap: 6,
+                pointerEvents: 'none',
+                animation: c.leaving ? 'lcChipOut 0.5s ease forwards' : 'lcChipIn 0.6s ease both',
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: 999, background: c.c, flexShrink: 0, display: 'inline-block' }}/>
+                {c.t}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Progress bar + tip footer */}
+        <div style={{ maxWidth: 1240, margin: '0 auto', width: '100%', padding: '0 40px 40px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, fontSize: 12, color: '#5A5C72' }}>
+            <span>{LOADING_STEPS[stepIdx]?.t || 'Finalizando'}…</span>
+            <span>
+              <strong style={{ fontFamily: 'monospace', color: '#14152B', fontWeight: 500 }}>{Math.round(progress)}%</strong>
+              {' · '}{remSec > 0 ? `~${remSec}s` : 'casi listo'}
+            </span>
+          </div>
+          <div style={{ height: 4, background: 'rgba(20,21,43,0.08)', borderRadius: 999, overflow: 'visible', position: 'relative' }}>
+            <div style={{
+              height: '100%',
+              width: `${progress}%`,
+              background: 'linear-gradient(90deg, #3B3FDB, #8B63E8)',
+              borderRadius: 999,
+              transition: 'width 0.4s cubic-bezier(.2,.8,.2,1)',
+              position: 'relative',
+            }}>
+              <span style={{
+                position: 'absolute', right: -4, top: '50%', transform: 'translateY(-50%)',
+                width: 12, height: 12, borderRadius: 999,
+                background: '#8B63E8',
+                boxShadow: '0 0 12px #8B63E8',
+                display: progress > 2 ? 'block' : 'none',
+              }}/>
+            </div>
+          </div>
+          <div style={{
+            marginTop: 18, padding: '14px 18px',
+            background: 'rgba(59,63,219,0.05)',
+            border: '1px solid rgba(59,63,219,0.12)',
+            borderRadius: 12,
+            fontSize: 13, color: '#3A3C55',
+            display: 'flex', alignItems: 'center', gap: 12,
+            maxWidth: 720,
+          }}>
+            <span style={{
+              flexShrink: 0, width: 24, height: 24, borderRadius: 999,
+              background: '#3B3FDB', color: '#fff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--font-instrument-serif), Georgia, serif',
+              fontSize: 14, fontStyle: 'italic',
+            }}>"</span>
+            <span style={{ fontStyle: 'italic', lineHeight: 1.45 }}>{LOADING_TIPS[tipIdx]}</span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── UI components ─────────────────────────────────────────────────────────────
 
 function ElentioMark({ size = 24 }) {
@@ -165,6 +535,7 @@ export default function MbtiTest() {
   const [skillRatings, setSkillRatings] = useState({}); // Skills
   const [valuePicks, setValuePicks] = useState({});   // Values
   const [error, setError] = useState('');
+  const [apiDone, setApiDone] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -175,24 +546,10 @@ export default function MbtiTest() {
 
   if (phase === 5) {
     return (
-      <div className="e-page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: 24 }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: '50%',
-            border: '3px solid rgba(59,63,219,0.15)',
-            borderTopColor: '#3B3FDB',
-            animation: 'spin 0.9s linear infinite',
-            margin: '0 auto 28px',
-          }}/>
-          <h2 style={{ fontFamily: 'var(--font-instrument-serif), Georgia, serif', fontSize: 28, fontWeight: 400, color: '#14152B', margin: '0 0 10px', letterSpacing: '-0.015em' }}>
-            Analizando tu perfil…
-          </h2>
-          <p style={{ fontSize: 14, color: '#8A8DA1', maxWidth: 320, lineHeight: 1.55 }}>
-            Procesando tus intereses, habilidades y valores para generar tus recomendaciones.
-          </p>
-        </div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
+      <LoadingScreen
+        apiDone={apiDone}
+        onNavigate={() => router.push('/test/mbti/resultado')}
+      />
     );
   }
 
@@ -240,7 +597,7 @@ export default function MbtiTest() {
           }));
         } catch (_) {}
 
-        router.push('/test/mbti/resultado');
+        setApiDone(true);
       } catch (e) {
         setError(e.message || 'Error al procesar el test. Inténtalo de nuevo.');
         setPhase(4);
