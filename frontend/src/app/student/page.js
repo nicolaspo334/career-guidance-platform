@@ -18,7 +18,8 @@ function ElentioMark({ size = 32, dark = false }) {
   );
 }
 
-const RAY_ANGLES = [-75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75, 90];
+// 12 rays evenly spread 360° — converge from all directions to center
+const RAY_ANGLES = Array.from({ length: 12 }, (_, i) => i * 30);
 
 export default function StudentLogin() {
   const [email, setEmail]         = useState('');
@@ -262,56 +263,44 @@ export default function StudentLogin() {
             padding: 48,
           }}
         >
-          {/* Converging rays SVG */}
+          {/* Converging rays SVG — viewBox gives real pixel coords, no % bugs */}
           <svg
+            viewBox="0 0 800 800"
+            preserveAspectRatio="xMidYMid slice"
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
             xmlns="http://www.w3.org/2000/svg"
-            preserveAspectRatio="xMidYMid slice"
           >
-            <defs>
-              <radialGradient id="fadeOut" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#3B3FDB" stopOpacity="0"/>
-                <stop offset="100%" stopColor="#3B3FDB" stopOpacity="0.15"/>
-              </radialGradient>
-            </defs>
-
-            {/* Concentric circles */}
-            {[80, 160, 260, 380].map((r, i) => (
+            {/* Concentric dashed circles from center */}
+            {[60, 130, 220, 340, 480].map((r, i) => (
               <circle
                 key={r}
                 className="circle-ring"
-                cx="50%"
-                cy="50%"
-                r={r}
+                cx={400} cy={400} r={r}
                 fill="none"
                 stroke="#3B3FDB"
                 strokeWidth="0.8"
-                strokeOpacity={0.12}
-                strokeDasharray="4 8"
-                style={{ animationDelay: `${-i * 1.2}s` }}
+                strokeOpacity="0.14"
+                strokeDasharray="4 10"
+                style={{ animationDelay: `${-i * 1.1}s` }}
               />
             ))}
 
-            {/* Converging rays from edges to center */}
-            {RAY_ANGLES.map((angle, i) => {
-              const rad = (angle * Math.PI) / 180;
-              const dist = 900;
-              const cx = 50, cy = 50;
-              const x1 = cx + Math.cos(rad) * (dist / 10) * 100;
-              const y1 = cy + Math.sin(rad) * (dist / 10) * 100;
+            {/* 12 rays evenly spread 360°, converging from edges to center */}
+            {RAY_ANGLES.map((angleDeg, i) => {
+              const rad = (angleDeg * Math.PI) / 180;
+              const x1 = 400 + Math.cos(rad) * 700;
+              const y1 = 400 + Math.sin(rad) * 700;
               return (
                 <line
                   key={i}
                   className="ray"
-                  x1={`${x1}%`}
-                  y1={`${y1}%`}
-                  x2="50%"
-                  y2="50%"
+                  x1={x1} y1={y1}
+                  x2={400} y2={400}
                   stroke="#3B3FDB"
-                  strokeWidth="0.8"
+                  strokeWidth="0.9"
                   strokeOpacity="0.22"
-                  strokeDasharray="6 14"
-                  style={{ animationDelay: `${-i * 0.35}s` }}
+                  strokeDasharray="6 16"
+                  style={{ animationDelay: `${-i * 0.33}s` }}
                 />
               );
             })}
