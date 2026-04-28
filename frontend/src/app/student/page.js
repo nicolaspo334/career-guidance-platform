@@ -238,21 +238,20 @@ export default function StudentLogin() {
         <div
           className="right-panel"
           style={{
-            position: 'relative',
-            backgroundColor: '#14152B',
+            background: '#14152B',
+            color: '#F5F2EA',
+            padding: '40px 56px',
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
+            justifyContent: 'space-between',
+            position: 'relative',
             overflow: 'hidden',
-            padding: 48,
           }}
         >
-          {/* Decorative converging lines — exact pattern from Claude Design */}
+          {/* Decorative converging lines */}
           <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.14 }}>
             <svg viewBox="0 0 800 1000" preserveAspectRatio="xMidYMid slice"
               style={{ width: '100%', height: '100%' }}>
-              {/* 12 rays radiating from focal point (500,650) outward */}
               {Array.from({ length: 12 }).map((_, i) => {
                 const angle = (i / 12) * Math.PI * 2;
                 const cx = 500, cy = 650;
@@ -260,13 +259,11 @@ export default function StudentLogin() {
                 const y2 = cy + Math.sin(angle) * 900;
                 return (
                   <line key={i} x1={cx} y1={cy} x2={x2} y2={y2}
-                    stroke="#F5F2EA" strokeWidth="1" fill="none"
-                    strokeDasharray="4 6"
+                    stroke="#F5F2EA" strokeWidth="1" fill="none" strokeDasharray="4 6"
                     style={{ animation: 'dash 40s linear infinite', animationDelay: `${i * -2}s` }}
                   />
                 );
               })}
-              {/* Concentric circles at focal point */}
               <circle cx="500" cy="650" r="80"  stroke="#F5F2EA" strokeOpacity="0.4"  fill="none" strokeWidth="0.8"/>
               <circle cx="500" cy="650" r="160" stroke="#F5F2EA" strokeOpacity="0.3"  fill="none" strokeWidth="0.8"/>
               <circle cx="500" cy="650" r="260" stroke="#F5F2EA" strokeOpacity="0.2"  fill="none" strokeWidth="0.8"/>
@@ -274,47 +271,58 @@ export default function StudentLogin() {
             </svg>
           </div>
 
-          {/* Content */}
-          <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: 360 }}>
-            <div style={{ marginBottom: 28 }}>
+          {/* Header — badge top right */}
+          <header style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              fontSize: 12, color: 'rgba(245,242,234,0.65)',
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+            }}>
+              <i className="pulse-dot" style={{
+                display: 'inline-block', width: 6, height: 6,
+                borderRadius: '50%', background: '#5BD99C', flexShrink: 0,
+              }}/>
+              12.480 alumnos orientados
+            </span>
+          </header>
+
+          {/* Main content — left aligned */}
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ marginBottom: 40 }}>
               <ElentioMark size={56} dark />
             </div>
-            <p style={{
-              fontFamily: 'var(--font-instrument-serif), Georgia, serif',
-              fontSize: 28,
-              fontWeight: 400,
-              color: '#E8E9F5',
-              lineHeight: 1.35,
-              letterSpacing: '-0.02em',
-              margin: '0 0 36px',
-            }}>
-              Tu carrera correcta existe.{' '}
-              <em style={{ fontStyle: 'italic', color: '#7B7FE8' }}>Encontrémosla juntos.</em>
-            </p>
-
             <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              backgroundColor: 'rgba(59,63,219,0.12)',
-              border: '1px solid rgba(59,63,219,0.25)',
-              borderRadius: 100,
-              padding: '8px 16px',
+              fontFamily: 'var(--font-instrument-serif), Georgia, serif',
+              fontSize: 46,
+              fontWeight: 400,
+              lineHeight: 1.08,
+              letterSpacing: '-0.02em',
+              maxWidth: 460,
             }}>
-              <span
-                className="pulse-dot"
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  backgroundColor: '#3B3FDB',
-                  flexShrink: 0,
-                }}
-              />
-              <span style={{ fontSize: 13, color: '#A8ABCC', fontWeight: 500 }}>
-                12.480 alumnos orientados
-              </span>
+              Tu carrera correcta existe.
+              <br/>
+              <em style={{ fontStyle: 'italic', color: '#D9A647' }}>Encontrémosla juntos.</em>
             </div>
+            <p style={{
+              fontSize: 14,
+              color: 'rgba(245,242,234,0.65)',
+              maxWidth: 420,
+              marginTop: 28,
+              lineHeight: 1.6,
+            }}>
+              Elentio es el copiloto que cruza lo que te motiva con cómo eres y con el trabajo que
+              existirá dentro de diez años. Sin tests aburridos, sin respuestas genéricas.
+            </p>
+          </div>
+
+          {/* Footer */}
+          <div style={{
+            position: 'relative', zIndex: 1,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            fontSize: 12, color: 'rgba(245,242,234,0.45)',
+          }}>
+            <span>Área del alumno · v2.4</span>
+            <span>Madrid, España</span>
           </div>
         </div>
       </div>
