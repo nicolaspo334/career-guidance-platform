@@ -1111,6 +1111,10 @@ Sustituye los valores 50 por los valores reales según las respuestas. Solo JSON
 
           const compatScore = Math.min(99, Math.round(Math.pow(compat, 1.5) * 160));
 
+          const futureNorm = normalizeWEF(c.future ?? 0);
+          const blendedRaw = 0.7 * compat + 0.3 * (futureNorm / 100);
+          const scoreFuture = Math.min(99, Math.round(Math.pow(blendedRaw, 1.5) * 160));
+
           const _debug = {
             mbtiC: r2(mbtiC), riasecC: r2(riasecC), valC: valC !== null ? r2(valC) : null,
             rawCompat: r2(compat),
@@ -1120,7 +1124,8 @@ Sustituye los valores 50 por los valores reales según las respuestas. Solo JSON
           };
 
           return { id: c.id, name: c.name, area: c.area, description: c.description,
-                   score: compatScore, compatScore, futureScore: c.future, _debug };
+                   score: compatScore, compatScore, futureScore: Math.round(futureNorm),
+                   scoreFuture, _debug };
         }).sort((a, b) => b.score - a.score).slice(0, 10);
 
         const resultId = generateId('res_');
@@ -1299,6 +1304,22 @@ Sustituye los valores 50 por los valores reales según las respuestas. Solo JSON
     }
   },
 };
+
+// ── WEF future-score normalization ───────────────────────────────────────────
+// Piecewise linear map of WEF net-employment-change score to 0-100:
+//   < 0      →  0–20  (decline)
+//   0–5      → 20–40  (stable)
+//   5–15     → 40–60  (moderate growth)
+//   15–30    → 60–80  (high growth)
+//   > 30     → 80–100 (very high growth)
+
+function normalizeWEF(wef) {
+  if (wef < 0)  return Math.max(0, 20 + wef * (20 / 30));
+  if (wef < 5)  return 20 + (wef / 5) * 20;
+  if (wef < 15) return 40 + ((wef - 5) / 10) * 20;
+  if (wef < 30) return 60 + ((wef - 15) / 15) * 20;
+  return Math.min(100, 80 + ((wef - 30) / 30) * 20);
+}
 
 // ── Values compatibility for career scoring ───────────────────────────────────
 // Each career now carries its own values profile derived from O*NET Work Values.

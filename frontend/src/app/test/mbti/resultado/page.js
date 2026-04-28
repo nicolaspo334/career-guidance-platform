@@ -163,14 +163,31 @@ function ScoreBar({ score }) {
   );
 }
 
-function FutureBar({ score: _score }) {
-  const score = 100; // TODO: calibrar con datos reales de mercado laboral
+function wefColor(score) {
+  if (score >= 80) return '#16a34a';
+  if (score >= 60) return '#22c55e';
+  if (score >= 40) return '#ca8a04';
+  if (score >= 20) return '#ea580c';
+  return '#ef4444';
+}
+
+function wefLabel(score) {
+  if (score >= 80) return 'Muy alta demanda';
+  if (score >= 60) return 'Alta demanda';
+  if (score >= 40) return 'Demanda moderada';
+  if (score >= 20) return 'Estable';
+  return 'En declive';
+}
+
+function FutureBar({ score }) {
+  const s = score ?? 50;
+  const color = wefColor(s);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
       <div style={{ flex: 1 }}>
-        <Bar pct={score} color="#22c55e"/>
+        <Bar pct={s} color={color}/>
       </div>
-      <span style={{ fontSize: 12, color: '#22c55e', fontWeight: 600, width: 32, textAlign: 'right', flexShrink: 0 }}>{score}%</span>
+      <span style={{ fontSize: 12, color, fontWeight: 600, width: 32, textAlign: 'right', flexShrink: 0 }}>{s}%</span>
     </div>
   );
 }
@@ -366,6 +383,7 @@ function RiasecGuidance({ riasec, profile }) {
 
 export default function MbtiResultado() {
   const [result, setResult] = useState(null);
+  const [withFuture, setWithFuture] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -548,59 +566,87 @@ export default function MbtiResultado() {
 
         {/* Career recommendations */}
         <div>
-          <h2 style={{ fontFamily: 'var(--font-instrument-serif), Georgia, serif', fontSize: 24, fontWeight: 400, color: '#14152B', margin: '8px 0 6px', letterSpacing: '-0.01em' }}>
-            Tus áreas más compatibles
-          </h2>
-          <p style={{ fontSize: 13, color: '#8A8DA1', margin: '0 0 18px', lineHeight: 1.5 }}>
-            Basadas en compatibilidad RIASEC (35%) + MBTI (35%) + NEO (30%) y proyección laboral.
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 6 }}>
+            <h2 style={{ fontFamily: 'var(--font-instrument-serif), Georgia, serif', fontSize: 24, fontWeight: 400, color: '#14152B', margin: '8px 0 0', letterSpacing: '-0.01em' }}>
+              Tus áreas más compatibles
+            </h2>
+            <button
+              onClick={() => setWithFuture(v => !v)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                padding: '8px 14px', borderRadius: 999, border: 'none', cursor: 'pointer',
+                fontSize: 12, fontWeight: 600, transition: 'all 0.2s',
+                background: withFuture ? '#16a34a' : 'rgba(20,21,43,0.07)',
+                color: withFuture ? '#fff' : '#5A5C72',
+              }}
+            >
+              <span style={{ fontSize: 14 }}>{withFuture ? '🌱' : '📊'}</span>
+              {withFuture ? 'Con futuro laboral' : 'Sin futuro laboral'}
+            </button>
+          </div>
+          <p style={{ fontSize: 13, color: '#8A8DA1', margin: '6px 0 18px', lineHeight: 1.5 }}>
+            {withFuture
+              ? 'Puntuación combinada: 70% compatibilidad + 30% proyección laboral WEF.'
+              : 'Basadas en compatibilidad RIASEC (35%) + MBTI (35%) + Valores (20%) + NEO (10%).'}
           </p>
           <div style={{ display: 'grid', gap: 12 }}>
-            {careers?.map((career, i) => (
-              <div key={career.id} className="e-card" style={{ padding: '20px 22px', boxShadow: '0 1px 0 rgba(20,21,43,0.02), 0 4px 12px rgba(20,21,43,0.05)' }}>
-                <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0,
-                    ...rankStyle(i),
-                  }}>
-                    {i + 1}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-                      <h3 style={{ fontSize: 15, fontWeight: 700, color: '#14152B', margin: 0 }}>{career.name}</h3>
-                      {career.area && (
-                        <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 999, background: 'rgba(59,63,219,0.08)', color: '#3B3FDB' }}>
-                          {career.area}
-                        </span>
-                      )}
-                    </div>
-                    {career.description && (
-                      <p style={{ fontSize: 13, color: '#5A5C72', margin: '0 0 14px', lineHeight: 1.5 }}>{career.description}</p>
-                    )}
+            {[...(careers ?? [])]
+              .sort((a, b) => withFuture ? (b.scoreFuture ?? b.score) - (a.scoreFuture ?? a.score) : b.score - a.score)
+              .map((career, i) => {
+                const displayScore = withFuture ? (career.scoreFuture ?? career.score) : career.score;
+                const futureBadgeColor = wefColor(career.futureScore ?? 50);
+                return (
+                  <div key={career.id} className="e-card" style={{ padding: '20px 22px', boxShadow: '0 1px 0 rgba(20,21,43,0.02), 0 4px 12px rgba(20,21,43,0.05)' }}>
+                    <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0,
+                        ...rankStyle(i),
+                      }}>
+                        {i + 1}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                          <h3 style={{ fontSize: 15, fontWeight: 700, color: '#14152B', margin: 0 }}>{career.name}</h3>
+                          {career.area && (
+                            <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 999, background: 'rgba(59,63,219,0.08)', color: '#3B3FDB' }}>
+                              {career.area}
+                            </span>
+                          )}
+                          {withFuture && (
+                            <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 999, background: `${futureBadgeColor}18`, color: futureBadgeColor }}>
+                              {wefLabel(career.futureScore ?? 50)}
+                            </span>
+                          )}
+                        </div>
+                        {career.description && (
+                          <p style={{ fontSize: 13, color: '#5A5C72', margin: '0 0 14px', lineHeight: 1.5 }}>{career.description}</p>
+                        )}
 
-                    {/* Global score bar */}
-                    <div style={{ marginBottom: 12 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#8A8DA1', marginBottom: 5 }}>
-                        <span>Puntuación global</span>
-                        <span style={{ fontWeight: 700, color: '#3B3FDB' }}>{career.score}%</span>
-                      </div>
-                      <Bar pct={career.score} color="#3B3FDB" height={6}/>
-                    </div>
+                        {/* Global score bar */}
+                        <div style={{ marginBottom: 12 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#8A8DA1', marginBottom: 5 }}>
+                            <span>Puntuación global</span>
+                            <span style={{ fontWeight: 700, color: '#3B3FDB' }}>{displayScore}%</span>
+                          </div>
+                          <Bar pct={displayScore} color="#3B3FDB" height={6}/>
+                        </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                      <div>
-                        <span style={{ fontSize: 11, color: '#8A8DA1' }}>Compatibilidad</span>
-                        <ScoreBar score={career.compatScore}/>
-                      </div>
-                      <div>
-                        <span style={{ fontSize: 11, color: '#8A8DA1' }}>Futuro laboral</span>
-                        <FutureBar score={career.futureScore}/>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                          <div>
+                            <span style={{ fontSize: 11, color: '#8A8DA1' }}>Compatibilidad</span>
+                            <ScoreBar score={career.compatScore}/>
+                          </div>
+                          <div>
+                            <span style={{ fontSize: 11, color: '#8A8DA1' }}>Futuro laboral</span>
+                            <FutureBar score={career.futureScore}/>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                );
+              })}
           </div>
         </div>
 
