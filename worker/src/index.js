@@ -591,7 +591,6 @@ export default {
         const hasValues = valuesProfile &&
           ['autonomy','innovative','socialImpact','growth'].every(k => typeof valuesProfile[k] === 'number');
 
-        // Build context string from structured questionnaires for the AI
         const structuredContext = hasPrecomputedRiasec
           ? `\nPerfil RIASEC del cuestionario estructurado: R=${riasecScores.R} I=${riasecScores.I} A=${riasecScores.A} S=${riasecScores.S} E=${riasecScores.E} C=${riasecScores.C}`
           : '';
@@ -605,86 +604,130 @@ ${structuredContext}${skillsContext}
 Respuestas del estudiante:
 ${qa}
 
-Devuelve ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin bloques markdown) con este formato exacto:
+INSTRUCCIONES DE PUNTUACIÓN:
+Para MBTI usa la escala 0-100 con estos anclajes exactos:
+• 0-15 = polo izquierdo muy marcado | 16-35 = polo izquierdo moderado | 36-64 = zona neutra, sin señal clara | 65-84 = polo derecho moderado | 85-100 = polo derecho muy marcado
+EI: 0=introvertido puro → 100=extrovertido puro
+SN: 0=intuitivo/abstracto puro → 100=sensorial/concreto puro
+TF: 0=emocional/empático puro → 100=lógico/analítico puro
+JP: 0=espontáneo/flexible puro → 100=planificador/estructurado puro
+
+Para cada tipo RIASEC devuelve "score" (0-100) y "confidence" (0.0-1.0):
+• confidence 0.0 = el alumno no menciona nada relacionado con este tipo en sus respuestas abiertas
+• confidence 0.3 = mención vaga o indirecta
+• confidence 0.6 = referencia clara pero puntual
+• confidence 1.0 = menciones explícitas, repetidas y coherentes
+IMPORTANTE: Si el alumno no proporciona evidencia de un tipo RIASEC en el texto, pon confidence=0.0. El cuestionario estructurado ya mide ese tipo; aquí solo puntúas lo que aparece explícitamente en las respuestas abiertas.
+
+Devuelve ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin bloques markdown):
 {
   "MBTI": {
-    "EI": <entero 0-100, donde 0=totalmente introvertido, 100=totalmente extrovertido>,
-    "SN": <entero 0-100, donde 0=totalmente intuitivo/abstracto, 100=totalmente sensorial/concreto>,
-    "TF": <entero 0-100, donde 0=totalmente emocional/sentimental, 100=totalmente lógico/racional>,
-    "JP": <entero 0-100, donde 0=totalmente flexible/espontáneo, 100=totalmente organizado/planificador>
+    "EI": <entero 0-100>,
+    "SN": <entero 0-100>,
+    "TF": <entero 0-100>,
+    "JP": <entero 0-100>
   },
   "RIASEC": {
-    "R": <0-100 realista>,
-    "I": <0-100 investigativo>,
-    "A": <0-100 artístico>,
-    "S": <0-100 social>,
-    "E": <0-100 emprendedor>,
-    "C": <0-100 convencional>
+    "R": { "score": <entero 0-100>, "confidence": <decimal 0.0-1.0> },
+    "I": { "score": <entero 0-100>, "confidence": <decimal 0.0-1.0> },
+    "A": { "score": <entero 0-100>, "confidence": <decimal 0.0-1.0> },
+    "S": { "score": <entero 0-100>, "confidence": <decimal 0.0-1.0> },
+    "E": { "score": <entero 0-100>, "confidence": <decimal 0.0-1.0> },
+    "C": { "score": <entero 0-100>, "confidence": <decimal 0.0-1.0> }
   },
   "analysis": "<2-3 frases en español describiendo el perfil vocacional del alumno>",
   "reasoning": {
-    "EI": "<cita las palabras o frases EXACTAS del alumno que determinaron este valor y explica por qué apuntan a introversión o extraversión>",
+    "EI": "<cita frases EXACTAS del alumno que determinaron este valor y explica por qué apuntan a introversión o extraversión>",
     "SN": "<ídem para intuitivo vs sensorial>",
     "TF": "<ídem para emocional vs racional>",
     "JP": "<ídem para espontáneo vs planificador>",
-    "R": "<frases exactas que sugieren (o descartan) perfil Realista>",
-    "I": "<frases exactas que sugieren (o descartan) perfil Investigador>",
-    "A": "<frases exactas que sugieren (o descartan) perfil Artístico>",
-    "S": "<frases exactas que sugieren (o descartan) perfil Social>",
-    "E": "<frases exactas que sugieren (o descartan) perfil Emprendedor>",
-    "C": "<frases exactas que sugieren (o descartan) perfil Convencional>"
+    "R": "<frases exactas que justifican el score y confidence asignados al tipo Realista>",
+    "I": "<ídem para Investigador>",
+    "A": "<ídem para Artístico>",
+    "S": "<ídem para Social>",
+    "E": "<ídem para Emprendedor>",
+    "C": "<ídem para Convencional>"
   }
 }`;
 
-        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${env.GROQ_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.2,
-            max_tokens: 1200,
-          }),
-        });
+        // ── Two parallel AI calls → average for objectivity ──────────────────
+        const callAI = async () => {
+          const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${env.GROQ_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'llama-3.3-70b-versatile',
+              messages: [{ role: 'user', content: prompt }],
+              temperature: 0,   // deterministic decoding — eliminates stochastic variance
+              max_tokens: 1400,
+            }),
+          });
+          if (!res.ok) throw new Error(`Groq HTTP ${res.status}`);
+          const data = await res.json();
+          const raw = data.choices?.[0]?.message?.content || '';
+          const match = raw.match(/\{[\s\S]*\}/);
+          if (!match) throw new Error('No JSON in response');
+          return { parsed: JSON.parse(match[0]), raw };
+        };
 
-        if (!groqRes.ok) {
-          const groqErr = await groqRes.text();
-          console.error('Groq error:', groqErr);
+        const [call1, call2] = await Promise.allSettled([callAI(), callAI()]);
+        const valid1 = call1.status === 'fulfilled' ? call1.value : null;
+        const valid2 = call2.status === 'fulfilled' ? call2.value : null;
+
+        if (!valid1 && !valid2) {
+          console.error('Both AI calls failed:', call1.reason?.message, call2.reason?.message);
           return err('Error al procesar las respuestas con IA', 502);
         }
 
-        const groqData = await groqRes.json();
-        const rawContent = groqData.choices?.[0]?.message?.content || '';
+        const d1 = valid1?.parsed;
+        const d2 = valid2?.parsed;
+        const dims = d1 || d2; // fallback to whichever succeeded
 
-        let dims;
-        try {
-          const match = rawContent.match(/\{[\s\S]*\}/);
-          if (!match) throw new Error('No JSON');
-          dims = JSON.parse(match[0]);
-        } catch (e) {
-          console.error('Profile parse error:', rawContent);
-          return err('Error al interpretar la respuesta de IA', 500);
+        const clamp  = (v, def = 50) => Math.min(100, Math.max(0, Math.round(Number(v) || def)));
+        const clampC = (v) => Math.min(1, Math.max(0, Number(v) || 0));
+
+        // Average two values if both calls succeeded; otherwise use the valid one
+        const avgInt = (a, b, def = 50) =>
+          (d1 && d2) ? Math.round((clamp(a, def) + clamp(b, def)) / 2)
+                     : d1 ? clamp(a, def) : clamp(b, def);
+        const avgFloat = (a, b) =>
+          (d1 && d2) ? Math.round(((clampC(a) + clampC(b)) / 2) * 100) / 100
+                     : d1 ? clampC(a) : clampC(b);
+
+        // Average MBTI (accepts flat or nested format from the model)
+        const EI = avgInt(d1?.MBTI?.EI ?? d1?.EI, d2?.MBTI?.EI ?? d2?.EI);
+        const SN = avgInt(d1?.MBTI?.SN ?? d1?.SN, d2?.MBTI?.SN ?? d2?.SN);
+        const TF = avgInt(d1?.MBTI?.TF ?? d1?.TF, d2?.MBTI?.TF ?? d2?.TF);
+        const JP = avgInt(d1?.MBTI?.JP ?? d1?.JP, d2?.MBTI?.JP ?? d2?.JP);
+
+        // Average RIASEC scores + confidence across both calls
+        const riasecAI = {};
+        for (const k of ['R','I','A','S','E','C']) {
+          const r1 = d1?.RIASEC?.[k], r2 = d2?.RIASEC?.[k];
+          riasecAI[k] = {
+            score:      avgInt(r1?.score   ?? r1, r2?.score   ?? r2),
+            confidence: avgFloat(r1?.confidence, r2?.confidence),
+          };
         }
 
-        const clamp = (v, d = 50) => Math.min(100, Math.max(0, Math.round(Number(v) || d)));
+        // ── Confidence-weighted RIASEC blend ─────────────────────────────────
+        // weight_ai = 0.35 × confidence
+        // confidence=0 → 100% structured score (silence is not penalized)
+        // confidence=1 → 65% structured + 35% AI (full blend)
+        const blendConfidence = (structured, aiScore, conf) => {
+          const w = 0.35 * Math.min(1, Math.max(0, conf));
+          return Math.round((1 - w) * clamp(structured) + w * clamp(aiScore));
+        };
 
-        // MBTI (acepta formato plano {EI,SN,...} o anidado {MBTI:{EI,...}})
-        const EI = clamp(dims.MBTI?.EI ?? dims.EI);
-        const SN = clamp(dims.MBTI?.SN ?? dims.SN);
-        const TF = clamp(dims.MBTI?.TF ?? dims.TF);
-        const JP = clamp(dims.MBTI?.JP ?? dims.JP);
-
-        // RIASEC: blend structured (65%) + AI inference from open answers (35%)
-        const blend = (structured, ai) => Math.round(0.65 * clamp(structured) + 0.35 * clamp(ai));
-        const RR = hasPrecomputedRiasec ? blend(riasecScores.R, dims.RIASEC?.R) : clamp(dims.RIASEC?.R);
-        const RI = hasPrecomputedRiasec ? blend(riasecScores.I, dims.RIASEC?.I) : clamp(dims.RIASEC?.I);
-        const RA = hasPrecomputedRiasec ? blend(riasecScores.A, dims.RIASEC?.A) : clamp(dims.RIASEC?.A);
-        const RS = hasPrecomputedRiasec ? blend(riasecScores.S, dims.RIASEC?.S) : clamp(dims.RIASEC?.S);
-        const RE = hasPrecomputedRiasec ? blend(riasecScores.E, dims.RIASEC?.E) : clamp(dims.RIASEC?.E);
-        const RC = hasPrecomputedRiasec ? blend(riasecScores.C, dims.RIASEC?.C) : clamp(dims.RIASEC?.C);
+        const RR = hasPrecomputedRiasec ? blendConfidence(riasecScores.R, riasecAI.R.score, riasecAI.R.confidence) : clamp(riasecAI.R.score);
+        const RI = hasPrecomputedRiasec ? blendConfidence(riasecScores.I, riasecAI.I.score, riasecAI.I.confidence) : clamp(riasecAI.I.score);
+        const RA = hasPrecomputedRiasec ? blendConfidence(riasecScores.A, riasecAI.A.score, riasecAI.A.confidence) : clamp(riasecAI.A.score);
+        const RS = hasPrecomputedRiasec ? blendConfidence(riasecScores.S, riasecAI.S.score, riasecAI.S.confidence) : clamp(riasecAI.S.score);
+        const RE = hasPrecomputedRiasec ? blendConfidence(riasecScores.E, riasecAI.E.score, riasecAI.E.confidence) : clamp(riasecAI.E.score);
+        const RC = hasPrecomputedRiasec ? blendConfidence(riasecScores.C, riasecAI.C.score, riasecAI.C.confidence) : clamp(riasecAI.C.score);
 
         const mbtiType =
           (EI >= 50 ? 'E' : 'I') +
@@ -692,13 +735,12 @@ Devuelve ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin bloques ma
           (TF >= 50 ? 'T' : 'F') +
           (JP >= 50 ? 'J' : 'P');
 
-        // RIASEC code = top 3 letters sorted by score
         const riasecCode = Object.entries({ R: RR, I: RI, A: RA, S: RS, E: RE, C: RC })
           .sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k).join('');
 
         const student = { EI, SN, TF, JP, R: RR, I: RI, A: RA, S: RS, E: RE, C: RC };
         const d = (a, b) => Math.pow(1 - Math.abs(a - b) / 100, 2);
-        const r2 = (v) => Math.round(v * 100) / 100; // round to 2 decimals
+        const r2 = (v) => Math.round(v * 100) / 100;
 
         const scoredCareers = CAREERS.map(c => {
           const dEI = d(student.EI, c.mbti.EI), dSN = d(student.SN, c.mbti.SN);
@@ -720,7 +762,6 @@ Devuelve ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin bloques ma
 
           const compatScore = Math.min(99, Math.round(Math.pow(compat, 1.5) * 160));
 
-          // Debug breakdown (intermediate d() values and sub-scores)
           const _debug = {
             mbtiC: r2(mbtiC), riasecC: r2(riasecC), valC: valC !== null ? r2(valC) : null,
             rawCompat: r2(compat),
@@ -759,24 +800,26 @@ Devuelve ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin bloques ma
           riasec: { R: RR, I: RI, A: RA, S: RS, E: RE, C: RC, code: riasecCode },
           analysis,
           careers: scoredCareers,
-          // Debug block — technical detail for analysis (remove in production)
           _debug: {
             model: 'llama-3.3-70b-versatile',
-            temperature: 0.2,
-            max_tokens: 1200,
+            temperature: 0,
+            max_tokens: 1400,
+            callsSucceeded: (valid1 ? 1 : 0) + (valid2 ? 1 : 0),
             promptSent: prompt,
-            rawAiResponse: rawContent,
+            call1: { raw: valid1?.raw || null, parsed: valid1?.parsed || null,
+                     error: call1.status === 'rejected' ? call1.reason?.message : null },
+            call2: { raw: valid2?.raw || null, parsed: valid2?.parsed || null,
+                     error: call2.status === 'rejected' ? call2.reason?.message : null },
+            averagedScores: { mbti: { EI, SN, TF, JP }, riasec: riasecAI },
             aiReasoning: dims.reasoning || null,
-            aiRawScores: {
-              mbti: { EI: dims.MBTI?.EI, SN: dims.MBTI?.SN, TF: dims.MBTI?.TF, JP: dims.MBTI?.JP },
-              riasec: { R: dims.RIASEC?.R, I: dims.RIASEC?.I, A: dims.RIASEC?.A,
-                        S: dims.RIASEC?.S, E: dims.RIASEC?.E, C: dims.RIASEC?.C },
-            },
             riasecPipeline: hasPrecomputedRiasec ? {
               structured: riasecScores,
-              ai: { R: clamp(dims.RIASEC?.R), I: clamp(dims.RIASEC?.I), A: clamp(dims.RIASEC?.A),
-                    S: clamp(dims.RIASEC?.S), E: clamp(dims.RIASEC?.E), C: clamp(dims.RIASEC?.C) },
-              blendWeights: { structured: 0.65, ai: 0.35 },
+              aiScores: Object.fromEntries(['R','I','A','S','E','C'].map(k => [k, riasecAI[k].score])),
+              aiConfidence: Object.fromEntries(['R','I','A','S','E','C'].map(k => [k, riasecAI[k].confidence])),
+              effectiveWeights: Object.fromEntries(['R','I','A','S','E','C'].map(k => [k, {
+                structured: Math.round((1 - 0.35 * riasecAI[k].confidence) * 100) / 100,
+                ai: Math.round(0.35 * riasecAI[k].confidence * 100) / 100,
+              }])),
               blended: { R: RR, I: RI, A: RA, S: RS, E: RE, C: RC },
             } : null,
             skillsScores: skillsScores || null,
